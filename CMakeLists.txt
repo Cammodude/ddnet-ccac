@@ -2054,6 +2054,7 @@ set_src(ENGINE_INTERFACE GLOB src/engine
 set_src(ENGINE_SHARED GLOB_RECURSE src/engine/shared
   assertion_logger.cpp
   assertion_logger.h
+  ccac/variables.h
   compression.cpp
   compression.h
   config.cpp

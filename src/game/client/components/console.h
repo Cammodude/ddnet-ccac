@@ -158,8 +158,8 @@ class CGameConsole : public CComponent
 	bool m_WantsSelectionCopy = false;
 	CUi::CTouchState m_TouchState;
 
-	static const ColorRGBA ms_SearchHighlightColor;
-	static const ColorRGBA ms_SearchSelectedColor;
+	static inline constexpr ColorRGBA ms_SearchHighlightColor = ColorRGBA(1.0f, 0.0f, 0.0f, 1.0f);
+	static inline constexpr ColorRGBA ms_SearchSelectedColor = ColorRGBA(1.0f, 1.0f, 0.0f, 1.0f);
 
 	int PossibleMaps(const char *pStr, IConsole::FPossibleCallback pfnCallback = IConsole::EmptyPossibleCommandCallback, void *pUser = nullptr);
 
@@ -172,6 +172,8 @@ class CGameConsole : public CComponent
 	static void ConDumpRemoteConsole(IConsole::IResult *pResult, void *pUserData);
 	static void ConConsolePageUp(IConsole::IResult *pResult, void *pUserData);
 	static void ConConsolePageDown(IConsole::IResult *pResult, void *pUserData);
+	static void ConConsolePageTop(IConsole::IResult *pResult, void *pUserData);
+	static void ConConsolePageBottom(IConsole::IResult *pResult, void *pUserData);
 	static void ConchainConsoleOutputLevel(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 
 public:
@@ -184,18 +186,18 @@ public:
 
 	CGameConsole();
 	~CGameConsole();
-	virtual int Sizeof() const override { return sizeof(*this); }
+	int Sizeof() const override { return sizeof(*this); }
 
 	void PrintLine(int Type, const char *pLine);
 	void RequireUsername(bool UsernameReq);
 
-	virtual void OnStateChange(int NewState, int OldState) override;
-	virtual void OnConsoleInit() override;
-	virtual void OnInit() override;
-	virtual void OnReset() override;
-	virtual void OnRender() override;
-	virtual void OnMessage(int MsgType, void *pRawMsg) override;
-	virtual bool OnInput(const IInput::CEvent &Event) override;
+	void OnStateChange(int NewState, int OldState) override;
+	void OnConsoleInit() override;
+	void OnInit() override;
+	void OnReset() override;
+	void OnRender() override;
+	void OnMessage(int MsgType, void *pRawMsg) override;
+	bool OnInput(const IInput::CEvent &Event) override;
 	void Prompt(char (&aPrompt)[32]);
 
 	void Toggle(int Type);
