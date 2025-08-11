@@ -115,19 +115,19 @@ bool CSqliteConnection::Connect(char *pError, int ErrorSize)
 	{
 		dbg_assert(false, "Tried connecting while the connection is in use");
 	}
-	if(!ConnectImpl(pError, ErrorSize))
+	if(ConnectImpl(pError, ErrorSize))
 	{
 		m_InUse.store(false);
-		return false;
+		return true;
 	}
-	return true;
+	return false;
 }
 
 bool CSqliteConnection::ConnectImpl(char *pError, int ErrorSize)
 {
 	if(m_pDb != nullptr)
 	{
-		return true;
+		return false;
 	}
 
 	if(sqlite3_libversion_number() < 3025000)
@@ -139,7 +139,7 @@ bool CSqliteConnection::ConnectImpl(char *pError, int ErrorSize)
 	if(Result != SQLITE_OK)
 	{
 		str_format(pError, ErrorSize, "Can't open sqlite database: '%s'", sqlite3_errmsg(m_pDb));
-		return false;
+		return true;
 	}
 
 	// wait for database to unlock so we don't have to handle SQLITE_BUSY errors
@@ -147,37 +147,37 @@ bool CSqliteConnection::ConnectImpl(char *pError, int ErrorSize)
 
 	if(m_Setup)
 	{
-		if(!Execute("PRAGMA journal_mode=WAL", pError, ErrorSize))
-			return false;
+		if(Execute("PRAGMA journal_mode=WAL", pError, ErrorSize))
+			return true;
 		char aBuf[1024];
 		FormatCreateRace(aBuf, sizeof(aBuf), /* Backup */ false);
-		if(!Execute(aBuf, pError, ErrorSize))
-			return false;
+		if(Execute(aBuf, pError, ErrorSize))
+			return true;
 		FormatCreateTeamrace(aBuf, sizeof(aBuf), "BLOB", /* Backup */ false);
-		if(!Execute(aBuf, pError, ErrorSize))
-			return false;
+		if(Execute(aBuf, pError, ErrorSize))
+			return true;
 		FormatCreateMaps(aBuf, sizeof(aBuf));
-		if(!Execute(aBuf, pError, ErrorSize))
-			return false;
+		if(Execute(aBuf, pError, ErrorSize))
+			return true;
 		FormatCreateSaves(aBuf, sizeof(aBuf), /* Backup */ false);
-		if(!Execute(aBuf, pError, ErrorSize))
-			return false;
+		if(Execute(aBuf, pError, ErrorSize))
+			return true;
 		FormatCreatePoints(aBuf, sizeof(aBuf));
-		if(!Execute(aBuf, pError, ErrorSize))
-			return false;
+		if(Execute(aBuf, pError, ErrorSize))
+			return true;
 
 		FormatCreateRace(aBuf, sizeof(aBuf), /* Backup */ true);
-		if(!Execute(aBuf, pError, ErrorSize))
-			return false;
+		if(Execute(aBuf, pError, ErrorSize))
+			return true;
 		FormatCreateTeamrace(aBuf, sizeof(aBuf), "BLOB", /* Backup */ true);
-		if(!Execute(aBuf, pError, ErrorSize))
-			return false;
+		if(Execute(aBuf, pError, ErrorSize))
+			return true;
 		FormatCreateSaves(aBuf, sizeof(aBuf), /* Backup */ true);
-		if(!Execute(aBuf, pError, ErrorSize))
-			return false;
+		if(Execute(aBuf, pError, ErrorSize))
+			return true;
 		m_Setup = false;
 	}
-	return true;
+	return false;
 }
 
 void CSqliteConnection::Disconnect()
@@ -201,10 +201,10 @@ bool CSqliteConnection::PrepareStatement(const char *pStmt, char *pError, int Er
 		nullptr);
 	if(FormatError(Result, pError, ErrorSize))
 	{
-		return false;
+		return true;
 	}
 	m_Done = false;
-	return true;
+	return false;
 }
 
 void CSqliteConnection::BindString(int Idx, const char *pString)
@@ -249,16 +249,16 @@ void CSqliteConnection::BindNull(int Idx)
 	m_Done = false;
 }
 
-// Keep support for SQLite < 3.14 on older Linux distributions
-// MinGW does not support weak attribute: https://sourceware.org/bugzilla/show_bug.cgi?id=9687
-#if !defined(__MINGW32__)
-[[gnu::weak]] extern char *sqlite3_expanded_sql(sqlite3_stmt *pStmt); // NOLINT(readability-redundant-declaration)
+// Keep support for SQLite < 3.14 on older Linux distributions. MinGW does not
+// support __attribute__((weak)): https://sourceware.org/bugzilla/show_bug.cgi?id=9687
+#if defined(__GNUC__) && !defined(__MINGW32__)
+extern char *sqlite3_expanded_sql(sqlite3_stmt *pStmt) __attribute__((weak)); // NOLINT(readability-redundant-declaration)
 #endif
 
 void CSqliteConnection::Print()
 {
 	if(m_pStmt != nullptr
-#if !defined(__MINGW32__)
+#if defined(__GNUC__) && !defined(__MINGW32__)
 		&& sqlite3_expanded_sql != nullptr
 #endif
 	)
@@ -274,40 +274,40 @@ bool CSqliteConnection::Step(bool *pEnd, char *pError, int ErrorSize)
 	if(m_Done)
 	{
 		*pEnd = true;
-		return true;
+		return false;
 	}
 	int Result = sqlite3_step(m_pStmt);
 	if(Result == SQLITE_ROW)
 	{
 		*pEnd = false;
-		return true;
+		return false;
 	}
 	else if(Result == SQLITE_DONE)
 	{
 		m_Done = true;
 		*pEnd = true;
-		return true;
+		return false;
 	}
 	else
 	{
 		if(FormatError(Result, pError, ErrorSize))
 		{
-			return false;
+			return true;
 		}
 	}
 	*pEnd = true;
-	return true;
+	return false;
 }
 
 bool CSqliteConnection::ExecuteUpdate(int *pNumUpdated, char *pError, int ErrorSize)
 {
 	bool End;
-	if(!Step(&End, pError, ErrorSize))
+	if(Step(&End, pError, ErrorSize))
 	{
-		return false;
+		return true;
 	}
 	*pNumUpdated = sqlite3_changes(m_pDb);
-	return true;
+	return false;
 }
 
 bool CSqliteConnection::IsNull(int Col)
@@ -368,9 +368,9 @@ bool CSqliteConnection::Execute(const char *pQuery, char *pError, int ErrorSize)
 	{
 		str_format(pError, ErrorSize, "error executing query: '%s'", pErrorMsg);
 		sqlite3_free(pErrorMsg);
-		return false;
+		return true;
 	}
-	return true;
+	return false;
 }
 
 bool CSqliteConnection::FormatError(int Result, char *pError, int ErrorSize)
@@ -401,9 +401,9 @@ bool CSqliteConnection::AddPoints(const char *pPlayer, int Points, char *pError,
 		"VALUES (?, ?) "
 		"ON CONFLICT(Name) DO UPDATE SET Points=Points+?",
 		GetPrefix());
-	if(!PrepareStatement(aBuf, pError, ErrorSize))
+	if(PrepareStatement(aBuf, pError, ErrorSize))
 	{
-		return false;
+		return true;
 	}
 	BindString(1, pPlayer);
 	BindInt(2, Points);

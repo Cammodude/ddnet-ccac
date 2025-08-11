@@ -8,7 +8,7 @@ class IStorage;
 class IServerBrowserPingCache
 {
 public:
-	virtual ~IServerBrowserPingCache() = default;
+	virtual ~IServerBrowserPingCache() {}
 
 	virtual void Load() = 0;
 

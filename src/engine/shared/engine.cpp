@@ -11,8 +11,6 @@
 #include <engine/shared/network.h>
 #include <engine/storage.h>
 
-#include <thread>
-
 class CEngine : public IEngine
 {
 	IConsole *m_pConsole;
@@ -48,19 +46,19 @@ class CEngine : public IEngine
 	}
 
 public:
-	CEngine(bool Test, const char *pAppname, std::shared_ptr<CFutureLogger> pFutureLogger) :
+	CEngine(bool Test, const char *pAppname, std::shared_ptr<CFutureLogger> pFutureLogger, int Jobs) :
 		m_pFutureLogger(std::move(pFutureLogger))
 	{
 		str_copy(m_aAppName, pAppname);
 		if(!Test)
 		{
-			log_info("engine", "running on %s-%s-%s", CONF_FAMILY_STRING, CONF_PLATFORM_STRING, CONF_ARCH_STRING);
-			log_info("engine", "arch is %s", CONF_ARCH_ENDIAN_STRING);
+			dbg_msg("engine", "running on %s-%s-%s", CONF_FAMILY_STRING, CONF_PLATFORM_STRING, CONF_ARCH_STRING);
+			dbg_msg("engine", "arch is %s", CONF_ARCH_ENDIAN_STRING);
 
 			char aVersionStr[128];
 			if(os_version_str(aVersionStr, sizeof(aVersionStr)))
 			{
-				log_info("engine", "operating system version: %s", aVersionStr);
+				dbg_msg("engine", "operating system version: %s", aVersionStr);
 			}
 
 			// init the network
@@ -68,14 +66,7 @@ public:
 			CNetBase::Init();
 		}
 
-#if defined(CONF_PLATFORM_EMSCRIPTEN)
-		// Make sure we don't use more threads than allowed in total (see PTHREAD_POOL_SIZE in Emscripten.toolchain)
-		// otherwise starting more threads may lead to deadlocks as the threads will simply not start.
-		const size_t ThreadCount = 4;
-#else
-		const size_t ThreadCount = std::max(4, (int)std::thread::hardware_concurrency()) - 2;
-#endif
-		m_JobPool.Init(ThreadCount);
+		m_JobPool.Init(Jobs);
 
 		m_Logging = false;
 	}
@@ -98,6 +89,8 @@ public:
 
 	void AddJob(std::shared_ptr<IJob> pJob) override
 	{
+		if(g_Config.m_Debug)
+			dbg_msg("engine", "job added");
 		m_JobPool.Add(std::move(pJob));
 	}
 
@@ -112,5 +105,5 @@ public:
 	}
 };
 
-IEngine *CreateEngine(const char *pAppname, std::shared_ptr<CFutureLogger> pFutureLogger) { return new CEngine(false, pAppname, std::move(pFutureLogger)); }
-IEngine *CreateTestEngine(const char *pAppname) { return new CEngine(true, pAppname, nullptr); }
+IEngine *CreateEngine(const char *pAppname, std::shared_ptr<CFutureLogger> pFutureLogger, int Jobs) { return new CEngine(false, pAppname, std::move(pFutureLogger), Jobs); }
+IEngine *CreateTestEngine(const char *pAppname, int Jobs) { return new CEngine(true, pAppname, nullptr, Jobs); }

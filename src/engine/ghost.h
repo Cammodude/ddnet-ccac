@@ -19,7 +19,7 @@ class IGhostRecorder : public IInterface
 {
 	MACRO_INTERFACE("ghostrecorder")
 public:
-	virtual ~IGhostRecorder() = default;
+	virtual ~IGhostRecorder() {}
 
 	virtual int Start(const char *pFilename, const char *pMap, const SHA256_DIGEST &MapSha256, const char *pName) = 0;
 	virtual void Stop(int Ticks, int Time) = 0;
@@ -32,7 +32,7 @@ class IGhostLoader : public IInterface
 {
 	MACRO_INTERFACE("ghostloader")
 public:
-	virtual ~IGhostLoader() = default;
+	virtual ~IGhostLoader() {}
 
 	virtual bool Load(const char *pFilename, const char *pMap, const SHA256_DIGEST &MapSha256, unsigned MapCrc) = 0;
 	virtual void Close() = 0;

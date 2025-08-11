@@ -19,7 +19,7 @@ public:
 		bool operator<(const CCountryFlag &Other) const { return str_comp(m_aCountryCodeString, Other.m_aCountryCodeString) < 0; }
 	};
 
-	int Sizeof() const override { return sizeof(*this); }
+	virtual int Sizeof() const override { return sizeof(*this); }
 	void OnInit() override;
 
 	size_t Num() const;

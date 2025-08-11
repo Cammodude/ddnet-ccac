@@ -15,19 +15,19 @@
 	Usage: map_convert_07 <source map filepath> <dest map filepath>
 */
 
-static CDataFileReader g_DataReader;
-static CDataFileWriter g_DataWriter;
+CDataFileReader g_DataReader;
+CDataFileWriter g_DataWriter;
 
 // global new image data (set by ReplaceImageItem)
-static int g_aNewDataSize[MAX_MAPIMAGES];
-static void *g_apNewData[MAX_MAPIMAGES];
+int g_aNewDataSize[MAX_MAPIMAGES];
+void *g_apNewData[MAX_MAPIMAGES];
 
-static int g_Index = 0;
-static int g_NextDataItemId = -1;
+int g_Index = 0;
+int g_NextDataItemId = -1;
 
-static int g_aImageIds[MAX_MAPIMAGES];
+int g_aImageIds[MAX_MAPIMAGES];
 
-static bool CheckImageDimensions(void *pLayerItem, int LayerType, const char *pFilename)
+bool CheckImageDimensions(void *pLayerItem, int LayerType, const char *pFilename)
 {
 	if(LayerType != MAPITEMTYPE_LAYER)
 		return true;
@@ -58,7 +58,7 @@ static bool CheckImageDimensions(void *pLayerItem, int LayerType, const char *pF
 	return false;
 }
 
-static void *ReplaceImageItem(int Index, CMapItemImage *pImgItem, CMapItemImage *pNewImgItem)
+void *ReplaceImageItem(int Index, CMapItemImage *pImgItem, CMapItemImage *pNewImgItem)
 {
 	if(!pImgItem->m_External)
 		return pImgItem;
@@ -114,10 +114,10 @@ int main(int argc, const char **argv)
 		return -1;
 	}
 
-	std::unique_ptr<IStorage> pStorage = std::unique_ptr<IStorage>(CreateStorage(IStorage::EInitializationType::BASIC, argc, argv));
+	IStorage *pStorage = CreateStorage(IStorage::EInitializationType::BASIC, argc, argv);
 	if(!pStorage)
 	{
-		log_error("map_convert_07", "Error creating basic storage");
+		dbg_msg("map_convert_07", "error loading storage");
 		return -1;
 	}
 
@@ -146,13 +146,13 @@ int main(int argc, const char **argv)
 		}
 	}
 
-	if(!g_DataReader.Open(pStorage.get(), pSourceFileName, IStorage::TYPE_ABSOLUTE))
+	if(!g_DataReader.Open(pStorage, pSourceFileName, IStorage::TYPE_ABSOLUTE))
 	{
 		dbg_msg("map_convert_07", "failed to open source map. filename='%s'", pSourceFileName);
 		return -1;
 	}
 
-	if(!g_DataWriter.Open(pStorage.get(), aDestFileName, IStorage::TYPE_ABSOLUTE))
+	if(!g_DataWriter.Open(pStorage, aDestFileName, IStorage::TYPE_ABSOLUTE))
 	{
 		dbg_msg("map_convert_07", "failed to open destination map. filename='%s'", aDestFileName);
 		return -1;

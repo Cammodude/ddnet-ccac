@@ -68,49 +68,43 @@ public:
 		bool Success = true;
 		if(InitializationType == EInitializationType::CLIENT)
 		{
-			static constexpr const char *CLIENT_DIRS[] = {
-				"assets",
-				"assets/emoticons",
-				"assets/entities",
-				"assets/extras",
-				"assets/game",
-				"assets/hud",
-				"assets/particles",
-				"audio",
-				"communityicons",
-				"downloadedmaps",
-				"downloadedskins",
-				"mapres",
-				"maps",
-				"maps/auto",
-				"screenshots",
-				"screenshots/auto",
-				"screenshots/auto/stats",
-				"skins",
-				"skins7",
-				"themes",
+			Success &= CreateFolder("screenshots", TYPE_SAVE);
+			Success &= CreateFolder("screenshots/auto", TYPE_SAVE);
+			Success &= CreateFolder("screenshots/auto/stats", TYPE_SAVE);
+			Success &= CreateFolder("maps", TYPE_SAVE);
+			Success &= CreateFolder("maps/auto", TYPE_SAVE);
+			Success &= CreateFolder("mapres", TYPE_SAVE);
+			Success &= CreateFolder("downloadedmaps", TYPE_SAVE);
+			Success &= CreateFolder("skins", TYPE_SAVE);
+			Success &= CreateFolder("skins7", TYPE_SAVE);
+			Success &= CreateFolder("downloadedskins", TYPE_SAVE);
+			Success &= CreateFolder("themes", TYPE_SAVE);
+			Success &= CreateFolder("communityicons", TYPE_SAVE);
+			Success &= CreateFolder("assets", TYPE_SAVE);
+			Success &= CreateFolder("assets/emoticons", TYPE_SAVE);
+			Success &= CreateFolder("assets/entities", TYPE_SAVE);
+			Success &= CreateFolder("assets/game", TYPE_SAVE);
+			Success &= CreateFolder("assets/particles", TYPE_SAVE);
+			Success &= CreateFolder("assets/hud", TYPE_SAVE);
+			Success &= CreateFolder("assets/extras", TYPE_SAVE);
 #if defined(CONF_VIDEORECORDER)
-				"videos"
+			Success &= CreateFolder("videos", TYPE_SAVE);
 #endif
-			};
-
-			for(const char *pDir : CLIENT_DIRS)
-				Success &= CreateFolder(pDir, TYPE_SAVE);
 		}
+		Success &= CreateFolder("dumps", TYPE_SAVE);
+		Success &= CreateFolder("demos", TYPE_SAVE);
+		Success &= CreateFolder("demos/auto", TYPE_SAVE);
+		Success &= CreateFolder("demos/auto/race", TYPE_SAVE);
+		Success &= CreateFolder("demos/auto/server", TYPE_SAVE);
+		Success &= CreateFolder("demos/replays", TYPE_SAVE);
+		Success &= CreateFolder("editor", TYPE_SAVE);
+		Success &= CreateFolder("ghosts", TYPE_SAVE);
+		Success &= CreateFolder("teehistorian", TYPE_SAVE);
 
-		static constexpr const char *COMMON_DIRS[] = {
-			"dumps",
-			"demos",
-			"demos/auto",
-			"demos/auto/race",
-			"demos/auto/server",
-			"demos/replays",
-			"editor",
-			"ghosts",
-			"teehistorian"};
-
-		for(const char *pDir : COMMON_DIRS)
-			Success &= CreateFolder(pDir, TYPE_SAVE);
+		Success &= CreateFolder("ccac", TYPE_SAVE);
+		Success &= CreateFolder("ccac/bot", TYPE_SAVE);
+		Success &= CreateFolder("ccac/clean", TYPE_SAVE);
+		Success &= CreateFolder("ccac/sus", TYPE_SAVE);
 
 		if(!Success)
 		{
@@ -476,7 +470,7 @@ public:
 		}
 	}
 
-	const char *GetPath(int Type, const char *pDir, char *pBuffer, unsigned BufferSize) const
+	const char *GetPath(int Type, const char *pDir, char *pBuffer, unsigned BufferSize)
 	{
 		if(Type == TYPE_ABSOLUTE)
 		{
@@ -489,7 +483,7 @@ public:
 		return pBuffer;
 	}
 
-	void TranslateType(int &Type, const char *pPath) const
+	void TranslateType(int &Type, const char *pPath)
 	{
 		if(Type == TYPE_SAVE_OR_ABSOLUTE)
 			Type = fs_is_relative_path(pPath) ? TYPE_SAVE : TYPE_ABSOLUTE;
@@ -518,7 +512,7 @@ public:
 
 		if(str_startswith(pFilename, "mapres/../skins/"))
 		{
-			pFilename = pFilename + str_length("mapres/../");
+			pFilename = pFilename + 10; // just start from skins/
 		}
 		if(pFilename[0] == '/' || pFilename[0] == '\\' || str_find(pFilename, "../") != nullptr || str_find(pFilename, "..\\") != nullptr
 #ifdef CONF_FAMILY_WINDOWS
@@ -555,7 +549,7 @@ public:
 	}
 
 	template<typename F>
-	bool GenericExists(const char *pFilename, int Type, F &&CheckFunction) const
+	bool GenericExists(const char *pFilename, int Type, F &&CheckFunction)
 	{
 		TranslateType(Type, pFilename);
 
@@ -804,7 +798,12 @@ public:
 		char aBuffer[IO_MAX_PATH_LENGTH];
 		GetPath(Type, pFilename, aBuffer, sizeof(aBuffer));
 
-		return fs_remove(aBuffer) == 0;
+		bool Success = !fs_remove(aBuffer);
+		if(!Success)
+		{
+			log_error("storage", "failed to remove file: %s", aBuffer);
+		}
+		return Success;
 	}
 
 	bool RemoveFolder(const char *pFilename, int Type) override
@@ -814,7 +813,12 @@ public:
 		char aBuffer[IO_MAX_PATH_LENGTH];
 		GetPath(Type, pFilename, aBuffer, sizeof(aBuffer));
 
-		return fs_removedir(aBuffer) == 0;
+		bool Success = !fs_removedir(aBuffer);
+		if(!Success)
+		{
+			log_error("storage", "failed to remove folder: %s", aBuffer);
+		}
+		return Success;
 	}
 
 	bool RemoveBinaryFile(const char *pFilename) override
@@ -822,7 +826,12 @@ public:
 		char aBuffer[IO_MAX_PATH_LENGTH];
 		GetBinaryPath(pFilename, aBuffer, sizeof(aBuffer));
 
-		return fs_remove(aBuffer) == 0;
+		bool Success = !fs_remove(aBuffer);
+		if(!Success)
+		{
+			log_error("storage", "failed to remove binary file: %s", aBuffer);
+		}
+		return Success;
 	}
 
 	bool RenameFile(const char *pOldFilename, const char *pNewFilename, int Type) override
@@ -834,7 +843,12 @@ public:
 		GetPath(Type, pOldFilename, aOldBuffer, sizeof(aOldBuffer));
 		GetPath(Type, pNewFilename, aNewBuffer, sizeof(aNewBuffer));
 
-		return fs_rename(aOldBuffer, aNewBuffer) == 0;
+		bool Success = !fs_rename(aOldBuffer, aNewBuffer);
+		if(!Success)
+		{
+			log_error("storage", "failed to rename file: %s -> %s", aOldBuffer, aNewBuffer);
+		}
+		return Success;
 	}
 
 	bool RenameBinaryFile(const char *pOldFilename, const char *pNewFilename) override
@@ -850,7 +864,12 @@ public:
 			return false;
 		}
 
-		return fs_rename(aOldBuffer, aNewBuffer) == 0;
+		bool Success = !fs_rename(aOldBuffer, aNewBuffer);
+		if(!Success)
+		{
+			log_error("storage", "failed to rename binary file: %s -> %s", aOldBuffer, aNewBuffer);
+		}
+		return Success;
 	}
 
 	bool CreateFolder(const char *pFoldername, int Type) override
@@ -860,7 +879,12 @@ public:
 		char aBuffer[IO_MAX_PATH_LENGTH];
 		GetPath(Type, pFoldername, aBuffer, sizeof(aBuffer));
 
-		return fs_makedir(aBuffer) == 0;
+		bool Success = !fs_makedir(aBuffer);
+		if(!Success)
+		{
+			log_error("storage", "failed to create folder: %s", aBuffer);
+		}
+		return Success;
 	}
 
 	void GetCompletePath(int Type, const char *pDir, char *pBuffer, unsigned BufferSize) override
@@ -879,7 +903,7 @@ public:
 	const char *GetBinaryPathAbsolute(const char *pFilename, char *pBuffer, unsigned BufferSize) override
 	{
 		char aBinaryPath[IO_MAX_PATH_LENGTH];
-		GetBinaryPath(pFilename, aBinaryPath, sizeof(aBinaryPath));
+		GetBinaryPath(PLAT_CLIENT_EXEC, aBinaryPath, sizeof(aBinaryPath));
 		if(fs_is_relative_path(aBinaryPath))
 		{
 			if(fs_getcwd(pBuffer, BufferSize))
@@ -938,28 +962,28 @@ IStorage *CreateStorage(IStorage::EInitializationType InitializationType, int Nu
 	return CStorage::Create(InitializationType, NumArgs, ppArguments);
 }
 
-std::unique_ptr<IStorage> CreateLocalStorage()
+IStorage *CreateLocalStorage()
 {
-	std::unique_ptr<CStorage> pStorage = std::make_unique<CStorage>();
+	CStorage *pStorage = new CStorage();
 	if(!pStorage->FindCurrentDirectory() ||
 		!pStorage->AddPath("$CURRENTDIR"))
 	{
-		return std::unique_ptr<IStorage>(nullptr);
+		delete pStorage;
+		return nullptr;
 	}
 	return pStorage;
 }
 
-std::unique_ptr<IStorage> CreateTempStorage(const char *pDirectory, int NumArgs, const char **ppArguments)
+IStorage *CreateTempStorage(const char *pDirectory, int NumArgs, const char **ppArguments)
 {
+	CStorage *pStorage = new CStorage();
 	dbg_assert(NumArgs > 0, "Expected at least one argument");
-	std::unique_ptr<CStorage> pStorage = std::make_unique<CStorage>();
 	pStorage->FindDataDirectory(ppArguments[0]);
-	if(!pStorage->FindCurrentDirectory() ||
-		!pStorage->AddPath(pDirectory) ||
-		!pStorage->AddPath("$DATADIR") ||
-		!pStorage->AddPath("$CURRENTDIR"))
+	pStorage->FindCurrentDirectory();
+	if(!pStorage->AddPath(pDirectory) || !pStorage->AddPath("$DATADIR") || !pStorage->AddPath("$CURRENTDIR"))
 	{
-		return std::unique_ptr<IStorage>(nullptr);
+		delete pStorage;
+		return nullptr;
 	}
 	return pStorage;
 }

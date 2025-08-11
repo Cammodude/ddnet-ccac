@@ -8,7 +8,7 @@
 #include <game/mapitems.h>
 #include <vector>
 
-static void ClearTransparentPixels(uint8_t *pImg, int Width, int Height)
+void ClearTransparentPixels(uint8_t *pImg, int Width, int Height)
 {
 	for(int y = 0; y < Height; ++y)
 	{
@@ -25,7 +25,7 @@ static void ClearTransparentPixels(uint8_t *pImg, int Width, int Height)
 	}
 }
 
-static void CopyOpaquePixels(uint8_t *pDestImg, uint8_t *pSrcImg, int Width, int Height)
+void CopyOpaquePixels(uint8_t *pDestImg, uint8_t *pSrcImg, int Width, int Height)
 {
 	for(int y = 0; y < Height; ++y)
 	{
@@ -40,7 +40,7 @@ static void CopyOpaquePixels(uint8_t *pDestImg, uint8_t *pSrcImg, int Width, int
 	}
 }
 
-static void ClearPixelsTile(uint8_t *pImg, int Width, int Height, int TileIndex)
+void ClearPixelsTile(uint8_t *pImg, int Width, int Height, int TileIndex)
 {
 	int WTile = Width / 16;
 	int HTile = Height / 16;
@@ -60,7 +60,7 @@ static void ClearPixelsTile(uint8_t *pImg, int Width, int Height, int TileIndex)
 	}
 }
 
-static void GetImageSHA256(uint8_t *pImgBuff, int ImgSize, int Width, int Height, char *pSHA256Str, size_t SHA256StrSize)
+void GetImageSHA256(uint8_t *pImgBuff, int ImgSize, int Width, int Height, char *pSHA256Str, size_t SHA256StrSize)
 {
 	uint8_t *pNewImgBuff = (uint8_t *)malloc(ImgSize);
 
@@ -78,14 +78,10 @@ int main(int argc, const char **argv)
 	CCmdlineFix CmdlineFix(&argc, &argv);
 	log_set_global_logger_default();
 
-	std::unique_ptr<IStorage> pStorage = std::unique_ptr<IStorage>(CreateStorage(IStorage::EInitializationType::BASIC, argc, argv));
-	if(!pStorage)
+	IStorage *pStorage = CreateStorage(IStorage::EInitializationType::BASIC, argc, argv);
+	if(!pStorage || argc <= 1 || argc > 3)
 	{
-		log_error("map_optimize", "Error creating basic storage");
-		return -1;
-	}
-	if(argc <= 1 || argc > 3)
-	{
+		dbg_msg("map_optimize", "Invalid parameters or other unknown error.");
 		dbg_msg("map_optimize", "Usage: map_optimize <source map filepath> [<dest map filepath>]");
 		return -1;
 	}
@@ -106,14 +102,14 @@ int main(int argc, const char **argv)
 	}
 
 	CDataFileReader Reader;
-	if(!Reader.Open(pStorage.get(), argv[1], IStorage::TYPE_ABSOLUTE))
+	if(!Reader.Open(pStorage, argv[1], IStorage::TYPE_ABSOLUTE))
 	{
 		dbg_msg("map_optimize", "Failed to open source file.");
 		return -1;
 	}
 
 	CDataFileWriter Writer;
-	if(!Writer.Open(pStorage.get(), aFileName, IStorage::TYPE_ABSOLUTE))
+	if(!Writer.Open(pStorage, aFileName, IStorage::TYPE_ABSOLUTE))
 	{
 		dbg_msg("map_optimize", "Failed to open target file.");
 		return -1;

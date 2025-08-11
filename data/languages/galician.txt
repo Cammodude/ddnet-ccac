@@ -736,6 +736,9 @@ may cause delay
 Screen
 == Pantalla
 
+Use high DPI
+== Usar DPI alto
+
 Enable game sounds
 == Habilitar sons do xogo
 
@@ -846,6 +849,9 @@ AntiPing: predict grenade paths
 
 Show other players' hook collision lines
 == Mostrar as liñas de colisión de gancho doutros xogadores
+
+Show other players' key presses
+== Mostrar as pulsacións de teclas doutros xogadores
 
 Show tiles layers from BG map
 == Mostrar capas de tiles do mapa de fondo
@@ -1093,6 +1099,9 @@ https://ddnet.org/discord
 
 Are you sure that you want to disconnect and switch to a different server?
 == Seguro que queres desconectarche e cambiar de servidor?
+
+Show local player's key presses
+== Mostrar as teclas presionadas polo xogador local
 
 Settings file
 == Arquivo de configuraciones
@@ -1438,6 +1447,10 @@ Failed during initialization. Try to change gfx_backend to OpenGL or Vulkan in s
 == Erro durante a iniciación. Tenta cambiar gfx_backend a OpenGL ou Vulkan desde settings_ddnet.cfg no cartafol de configuracións e téntao outra vez.
 
 [Graphics error]
+Out of VRAM. Try removing custom assets (skins, entities, etc.), especially those with high resolution.
+== A VRAM encheuse. Tenta quitar recursos personalizados (skins, entidades etc.)/ etc.), especialmente os de resolución alta.
+
+[Graphics error]
 An error during command recording occurred. Try to update your GPU drivers.
 == Ocorreu un erro durante a gravación de comandos. Tenta actualizar os controladores do teu GPU.
 
@@ -1528,14 +1541,6 @@ Relative
 Absolute
 == Absoluto
 
-[Translation credits: Add your own name here when you update translations]
-English translation by the DDNet Team
-== Galician translation by TormentaDeFacha and Mercadona
-
-[Graphics error]
-Out of VRAM. Try setting 'cl_skins_loaded_max' to a lower value or remove custom assets (skins, entities, etc.), especially those with high resolution.
-== 
-
 Could not resolve connect address '%s'. See local console for details.
 == 
 
@@ -1557,9 +1562,6 @@ Saving settings to '%s' failed
 Error saving settings
 == 
 
-No demo with this filename exists
-== 
-
 "%s" is not compatible with pnglite and cannot be loaded by old DDNet versions:
 == 
 
@@ -1573,6 +1575,9 @@ Quitting. Please wait…
 == 
 
 Restarting. Please wait…
+== 
+
+Loading background map
 == 
 
 Auto-sync player camera
@@ -1635,10 +1640,6 @@ Multi-View
 == 
 
 [Spectating]
-Following %d: %s
-== 
-
-[Spectating]
 Following %s
 == 
 
@@ -1647,9 +1648,6 @@ AUTO
 == 
 
 Some map images could not be loaded. Check the local console for details.
-== 
-
-Loading map
 == 
 
 Some map sounds could not be loaded. Check the local console for details.
@@ -1685,9 +1683,6 @@ There's an unsaved map in the editor, you might want to save it.
 Continue anyway?
 == 
 
-This name cannot be used for files and folders
-== 
-
 A demo with this name already exists
 == 
 
@@ -1706,16 +1701,10 @@ Videos directory
 Video was saved to '%s'
 == 
 
-Error checking player name
-== 
-
-Could not check for existing player with your name. Check your internet connection.
+Unable to save the skin
 == 
 
 Unable to save the skin with a reserved name
-== 
-
-Unable to save the skin
 == 
 
 %d/%d KiB (%.1f KiB/s)
@@ -1755,11 +1744,11 @@ Go back the specified duration
 == 
 
 [Demo player duration]
-%s min.
+%d min.
 == 
 
 [Demo player duration]
-%s sec.
+%d sec.
 == 
 
 Change the skip duration
@@ -1808,9 +1797,6 @@ Created
 == 
 
 Netversion
-== 
-
-Map size
 == 
 
 [Demo details]
@@ -1967,18 +1953,6 @@ Open the saves file
 Player info change cooldown
 == 
 
-This skin name cannot be used.
-== 
-
-Skin could not be loaded due to an error. Check the local console for details.
-== 
-
-Skin could not be found.
-== 
-
-No skins match your filter criteria
-== 
-
 Axis
 == 
 
@@ -1990,6 +1964,10 @@ Renders your frame rate in the top right
 
 Graphics card
 == 
+
+[Translation credits: Add your own name here when you update translations]
+English translation by the DDNet Team
+== Galician translation by TormentaDeFacha and Mercadona
 
 Tee
 == 
@@ -2012,9 +1990,6 @@ Same clan color in scoreboard
 Show client IDs (scoreboard, chat, spectator)
 == 
 
-Show number of spectators
-== 
-
 Always show chat
 == 
 
@@ -2027,35 +2002,10 @@ Chat font size
 Chat width
 == 
 
-[Show name plates]
-None
-== 
-
-[Show name plates]
-Own
-== 
-
-[Show name plates]
-Others
-== 
-
-[Show name plates]
-All
-== 
-
-Name plates offset
-== 
-
-Show friend icon in name plates
+Show friend mark (♥) in name plates
 == 
 
 Show client IDs in name plates
-== 
-
-Show client IDs on a seperate line
-== 
-
-Client IDs size
 == 
 
 Hook Strength
@@ -2073,32 +2023,7 @@ Size of hook strength icon and number indicator
 Key Presses
 == 
 
-Show players' key presses
-== 
-
-[Show players' key presses]
-None
-== 
-
-[Show players' key presses]
-Own
-== 
-
-[Show players' key presses]
-Others
-== 
-
-[Show players' key presses]
-All
-== 
-
 Size of key press icons
-== 
-
-Preview player's name plate
-== 
-
-Preview dummy's name plate
 == 
 
 Show own player's hook collision line
@@ -2122,12 +2047,6 @@ Preview 'Hook collisions' being pressed
 Show finish messages
 == 
 
-Dragger Outline Color
-== 
-
-Dragger Inner Color
-== 
-
 Default length
 == 
 
@@ -2135,9 +2054,6 @@ Enable ghost
 == 
 
 Only save improvements
-== 
-
-AntiPing: prediction margin
 == 
 
 Regular background color

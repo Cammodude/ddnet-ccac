@@ -36,6 +36,8 @@ public:
 	 */
 	float ScaleLength(float Value) const;
 
+	bool m_ShowPicker; // TODO: make private
+
 	float GetWorldZoom() const;
 
 	void OffsetWorld(vec2 Offset);

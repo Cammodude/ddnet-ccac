@@ -42,7 +42,6 @@
 #include "components/hud.h"
 #include "components/infomessages.h"
 #include "components/items.h"
-#include "components/local_server.h"
 #include "components/mapimages.h"
 #include "components/maplayers.h"
 #include "components/mapsounds.h"
@@ -62,6 +61,11 @@
 #include "components/tooltips.h"
 #include "components/touch_controls.h"
 #include "components/voting.h"
+
+// #include "components/chillerbot/chillconsole.h"
+#include "components/chillerbot/chatcommand.h"
+#include "components/chillerbot/chillerbotux.h"
+#include "components/chillerbot/warlist.h"
 
 #include <vector>
 
@@ -175,7 +179,12 @@ public:
 
 	CTooltips m_Tooltips;
 
-	CLocalServer m_LocalServer;
+	// chillerbot-ux
+
+	CChillerBotUX m_ChillerBotUX;
+	// CChillConsole m_ChillConsole;
+	CWarList m_WarList;
+	CChatCommand m_ChatCommand;
 
 private:
 	std::vector<class CComponent *> m_vpAll;
@@ -199,7 +208,6 @@ private:
 	class IEditor *m_pEditor;
 	class IFriends *m_pFriends;
 	class IFriends *m_pFoes;
-	class IDiscord *m_pDiscord;
 #if defined(CONF_AUTOUPDATE)
 	class IUpdater *m_pUpdater;
 #endif
@@ -239,7 +247,6 @@ private:
 	static void ConchainRefreshSkins(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainSpecialDummy(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 
-	static void ConTuneParam(IConsole::IResult *pResult, void *pUserData);
 	static void ConTuneZone(IConsole::IResult *pResult, void *pUserData);
 	static void ConMapbug(IConsole::IResult *pResult, void *pUserData);
 
@@ -380,13 +387,11 @@ public:
 	};
 
 	CSnapState m_Snap;
-	int m_aLocalTuneZone[NUM_DUMMIES]; // current tunezone (0-255)
-	bool m_aReceivedTuning[NUM_DUMMIES]; // was tuning message received after zone change
-	int m_aExpectingTuningForZone[NUM_DUMMIES]; // tunezone changed, waiting for tuning for that zone
-	int m_aExpectingTuningSince[NUM_DUMMIES]; // how many snaps received since tunezone changed
-	CTuningParams m_aTuning[NUM_DUMMIES]; // current local player tuning, only what the player/dummy has
-
-	std::bitset<RECORDER_MAX> m_ActiveRecordings;
+	int m_aLocalTuneZone[NUM_DUMMIES];
+	bool m_aReceivedTuning[NUM_DUMMIES];
+	int m_aExpectingTuningForZone[NUM_DUMMIES];
+	int m_aExpectingTuningSince[NUM_DUMMIES];
+	CTuningParams m_aTuning[NUM_DUMMIES];
 
 	// spectate cursor data
 	class CCursorInfo
@@ -433,6 +438,7 @@ public:
 		char m_aClan[MAX_CLAN_LENGTH];
 		int m_Country;
 		char m_aSkinName[MAX_SKIN_LENGTH];
+		int m_SkinColor;
 		int m_Team;
 		int m_Emoticon;
 		float m_EmoticonStartFraction;
@@ -460,7 +466,7 @@ public:
 		CCharacterCore m_Predicted;
 		CCharacterCore m_PrevPredicted;
 
-		std::shared_ptr<CManagedTeeRenderInfo> m_pSkinInfo = nullptr; // this is what the server reports
+		std::shared_ptr<CManagedTeeRenderInfo> m_pSkinInfo; // this is what the server reports
 		CTeeRenderInfo m_RenderInfo; // this is what we use
 
 		float m_Angle;
@@ -480,8 +486,6 @@ public:
 
 		CNetObj_Character m_Snapped;
 		CNetObj_Character m_Evolved;
-
-		CNetMsg_Sv_PreInput m_aPreInputs[200];
 
 		// rendered characters
 		CNetObj_Character m_RenderCur;
@@ -608,10 +612,8 @@ public:
 	void OnSkinUpdate(const char *pSkinName);
 	std::shared_ptr<CManagedTeeRenderInfo> CreateManagedTeeRenderInfo(const CTeeRenderInfo &TeeRenderInfo, const CSkinDescriptor &SkinDescriptor);
 	std::shared_ptr<CManagedTeeRenderInfo> CreateManagedTeeRenderInfo(const CClientData &Client);
-	void CollectManagedTeeRenderInfos(const std::function<void(const char *pSkinName)> &ActiveSkinAcceptor);
 
 	void RenderShutdownMessage() override;
-	void ProcessDemoSnapshot(CSnapshot *pSnap) override;
 
 	const char *GetItemName(int Type) const override;
 	const char *Version() const override;
@@ -619,12 +621,13 @@ public:
 	const char *NetVersion7() const override;
 	int DDNetVersion() const override;
 	const char *DDNetVersionStr() const override;
-	int ClientVersion7() const override;
+	virtual int ClientVersion7() const override;
 
 	void DoTeamChangeMessage7(const char *pName, int ClientId, int Team, const char *pPrefix = "");
 
 	// actions
 	// TODO: move these
+	void SendFinishName();
 	void SendSwitchTeam(int Team) const;
 	void SendStartInfo7(bool Dummy);
 	void SendSkinChange7(bool Dummy);
@@ -841,9 +844,7 @@ public:
 	{
 		IGraphics::CTextureHandle m_SpriteParticleSnowflake;
 		IGraphics::CTextureHandle m_SpriteParticleSparkle;
-		IGraphics::CTextureHandle m_SpritePulley;
-		IGraphics::CTextureHandle m_SpriteHectagon;
-		IGraphics::CTextureHandle m_aSpriteParticles[4];
+		IGraphics::CTextureHandle m_aSpriteParticles[2];
 	};
 
 	SClientExtrasSkin m_ExtrasSkin;
@@ -871,7 +872,6 @@ private:
 	std::vector<std::shared_ptr<CManagedTeeRenderInfo>> m_vpManagedTeeRenderInfos;
 	void UpdateManagedTeeRenderInfos();
 
-	void UpdateLocalTuning();
 	void UpdatePrediction();
 	void UpdateSpectatorCursor();
 	void UpdateRenderedCharacters();
@@ -888,8 +888,6 @@ private:
 
 	void LoadMapSettings();
 	CMapBugs m_MapBugs;
-
-	// tunings for every zone on the map, 0 is a global tune
 	CTuningParams m_aTuningList[NUM_TUNEZONES];
 	CTuningParams *TuningList() { return m_aTuningList; }
 

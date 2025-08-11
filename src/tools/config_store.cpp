@@ -1,21 +1,17 @@
-#include <base/log.h>
 #include <base/math.h>
 #include <base/system.h>
-
 #include <engine/shared/datafile.h>
 #include <engine/shared/linereader.h>
 #include <engine/storage.h>
-
 #include <game/mapitems.h>
-
 #include <vector>
 
-static void Process(IStorage *pStorage, const char *pMapName, const char *pConfigName)
+void Process(IStorage *pStorage, const char *pMapName, const char *pConfigName)
 {
 	CLineReader LineReader;
 	if(!LineReader.OpenFile(pStorage->OpenFile(pConfigName, IOFLAG_READ, IStorage::TYPE_ABSOLUTE)))
 	{
-		log_error("config_store", "Failed to import settings from '%s': could not open config for reading", pConfigName);
+		dbg_msg("config_store", "config '%s' not found", pConfigName);
 		return;
 	}
 
@@ -27,13 +23,6 @@ static void Process(IStorage *pStorage, const char *pMapName, const char *pConfi
 		TotalLength += str_length(pLine) + 1;
 	}
 
-	CDataFileReader Reader;
-	if(!Reader.Open(pStorage, pMapName, IStorage::TYPE_ABSOLUTE))
-	{
-		log_error("config_store", "Failed to import settings from '%s': failed to open map '%s' for reading", pConfigName, pMapName);
-		return;
-	}
-
 	char *pSettings = (char *)malloc(maximum(1, TotalLength));
 	int Offset = 0;
 	for(const char *pLine : vpLines)
@@ -42,6 +31,9 @@ static void Process(IStorage *pStorage, const char *pMapName, const char *pConfi
 		mem_copy(pSettings + Offset, pLine, Length);
 		Offset += Length;
 	}
+
+	CDataFileReader Reader;
+	Reader.Open(pStorage, pMapName, IStorage::TYPE_ABSOLUTE);
 
 	CDataFileWriter Writer;
 
@@ -69,7 +61,7 @@ static void Process(IStorage *pStorage, const char *pMapName, const char *pConfi
 					int DataSize = Reader.GetDataSize(SettingsIndex);
 					if(DataSize == TotalLength && mem_comp(pSettings, pMapSettings, DataSize) == 0)
 					{
-						log_info("config_store", "Configs coincide, not updating map");
+						dbg_msg("config_store", "configs coincide, not updating map");
 						free(pSettings);
 						return;
 					}
@@ -123,10 +115,10 @@ static void Process(IStorage *pStorage, const char *pMapName, const char *pConfi
 	Reader.Close();
 	if(!Writer.Open(pStorage, pMapName))
 	{
-		log_error("config_store", "Failed to import settings from '%s': failed to open map '%s' for writing", pConfigName, pMapName);
+		dbg_msg("config_store", "couldn't open map file '%s' for writing", pMapName);
 		return;
 	}
 	Writer.Finish();
-	log_info("config_store", "Imported settings from '%s' into '%s'", pConfigName, pMapName);
+	dbg_msg("config_store", "imported settings");
 }
 #include "config_common.h"

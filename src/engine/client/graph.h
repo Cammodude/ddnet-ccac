@@ -16,28 +16,21 @@ class ITextRender;
 class CGraph
 {
 private:
-	class CEntry
+	struct SEntry
 	{
-	public:
 		int64_t m_Time;
 		float m_Value;
 		ColorRGBA m_Color;
 		bool m_ApplyColor;
 	};
-	CEntry *m_pFirstScaled = nullptr;
+	SEntry *m_pFirstScaled = nullptr;
 	int64_t m_RenderedTotalTime = 0;
-	float m_Average;
-	float m_MinAxis, m_MaxAxis;
-	float m_MinValue, m_MaxValue;
+	float m_Min, m_Max;
 	float m_MinRange, m_MaxRange;
-	CDynamicRingBuffer<CEntry> m_Entries;
-	int m_Precision;
-	bool m_SummaryStats;
-
-	void RenderDataLines(IGraphics *pGraphics, float x, float y, float w, float h);
+	CDynamicRingBuffer<SEntry> m_Entries;
 
 public:
-	CGraph(int MaxEntries, int Precision, bool SummaryStats);
+	CGraph(int MaxEntries);
 
 	void Init(float Min, float Max);
 	void SetMin(float Min);

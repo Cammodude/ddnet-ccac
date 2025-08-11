@@ -26,16 +26,17 @@ CDoor::CDoor(CGameWorld *pGameWorld, vec2 Pos, float Rotation, int Length,
 
 void CDoor::ResetCollision()
 {
-	if(GameServer()->Collision()->GetTile(m_Pos.x, m_Pos.y) || GameServer()->Collision()->GetFrontTile(m_Pos.x, m_Pos.y))
-		return;
-
 	for(int i = 0; i < m_Length - 1; i++)
 	{
-		vec2 CurrentPos = m_Pos + m_Direction * i;
-		if(GameServer()->Collision()->CheckPoint(CurrentPos))
+		vec2 CurrentPos(m_Pos.x + (m_Direction.x * i),
+			m_Pos.y + (m_Direction.y * i));
+		if(GameServer()->Collision()->CheckPoint(CurrentPos) || GameServer()->Collision()->GetTile(m_Pos.x, m_Pos.y) || GameServer()->Collision()->GetFrontTile(m_Pos.x, m_Pos.y))
 			break;
 		else
-			GameServer()->Collision()->SetDoorCollisionAt(CurrentPos.x, CurrentPos.y, TILE_STOPA, 0, m_Number);
+			GameServer()->Collision()->SetDoorCollisionAt(
+				m_Pos.x + (m_Direction.x * i),
+				m_Pos.y + (m_Direction.y * i), TILE_STOPA, 0 /*Flags*/,
+				m_Number);
 	}
 }
 
@@ -63,8 +64,8 @@ void CDoor::Snap(int SnappingClient)
 	{
 		CCharacter *pChr = GameServer()->GetPlayerChar(SnappingClient);
 
-		if(SnappingClient != SERVER_DEMO_CLIENT && (GameServer()->m_apPlayers[SnappingClient]->GetTeam() == TEAM_SPECTATORS || GameServer()->m_apPlayers[SnappingClient]->IsPaused()) && GameServer()->m_apPlayers[SnappingClient]->SpectatorId() != SPEC_FREEVIEW)
-			pChr = GameServer()->GetPlayerChar(GameServer()->m_apPlayers[SnappingClient]->SpectatorId());
+		if(SnappingClient != SERVER_DEMO_CLIENT && (GameServer()->m_apPlayers[SnappingClient]->GetTeam() == TEAM_SPECTATORS || GameServer()->m_apPlayers[SnappingClient]->IsPaused()) && GameServer()->m_apPlayers[SnappingClient]->m_SpectatorId != SPEC_FREEVIEW)
+			pChr = GameServer()->GetPlayerChar(GameServer()->m_apPlayers[SnappingClient]->m_SpectatorId);
 
 		if(pChr && pChr->Team() != TEAM_SUPER && pChr->IsAlive() && !Switchers().empty() && Switchers()[m_Number].m_aStatus[pChr->Team()])
 		{
@@ -77,6 +78,6 @@ void CDoor::Snap(int SnappingClient)
 		StartTick = Server()->Tick();
 	}
 
-	GameServer()->SnapLaserObject(CSnapContext(SnappingClientVersion, Server()->IsSixup(SnappingClient), SnappingClient), GetId(),
+	GameServer()->SnapLaserObject(CSnapContext(SnappingClientVersion), GetId(),
 		m_Pos, From, StartTick, -1, LASERTYPE_DOOR, 0, m_Number);
 }

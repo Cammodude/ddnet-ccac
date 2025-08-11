@@ -54,7 +54,7 @@ private:
 
 	vec2 m_LastTargetPos;
 	float m_DyncamSmoothingSpeedBias;
-	bool m_CanUseCameraInfo;
+	bool m_IsSpectatingPlayer;
 	bool m_UsingAutoSpecCamera;
 
 	char m_aAutoSpecCameraTooltip[512];
@@ -84,13 +84,13 @@ public:
 	vec2 m_aDyncamCurrentCameraOffset[NUM_DUMMIES];
 
 	CCamera();
-	int Sizeof() const override { return sizeof(*this); }
-	void OnRender() override;
+	virtual int Sizeof() const override { return sizeof(*this); }
+	virtual void OnRender() override;
 
 	// DDRace
 
-	void OnConsoleInit() override;
-	void OnReset() override;
+	virtual void OnConsoleInit() override;
+	virtual void OnReset() override;
 
 	void SetView(ivec2 Pos, bool Relative = false);
 	void GotoSwitch(int Number, int Offset = -1);
@@ -105,7 +105,7 @@ public:
 
 	void UpdateCamera();
 	void ResetAutoSpecCamera();
-	bool SpectatingPlayer() const { return m_CanUseCameraInfo; }
+	bool SpectatingPlayer() const { return m_IsSpectatingPlayer; }
 	bool CanUseAutoSpecCamera() const;
 	void ToggleAutoSpecCamera();
 	void UpdateAutoSpecCameraTooltip();

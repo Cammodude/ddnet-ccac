@@ -25,14 +25,14 @@ class CEmoticon : public CComponent
 
 public:
 	CEmoticon();
-	int Sizeof() const override { return sizeof(*this); }
+	virtual int Sizeof() const override { return sizeof(*this); }
 
-	void OnReset() override;
-	void OnConsoleInit() override;
-	void OnRender() override;
-	void OnRelease() override;
-	bool OnCursorMove(float x, float y, IInput::ECursorType CursorType) override;
-	bool OnInput(const IInput::CEvent &Event) override;
+	virtual void OnReset() override;
+	virtual void OnConsoleInit() override;
+	virtual void OnRender() override;
+	virtual void OnRelease() override;
+	virtual bool OnCursorMove(float x, float y, IInput::ECursorType CursorType) override;
+	virtual bool OnInput(const IInput::CEvent &Event) override;
 
 	void Emote(int Emoticon);
 	void EyeEmote(int EyeEmote);

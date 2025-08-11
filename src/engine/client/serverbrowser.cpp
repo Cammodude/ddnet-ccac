@@ -6,8 +6,7 @@
 #include "serverbrowser_ping_cache.h"
 
 #include <algorithm>
-#include <map>
-#include <set>
+#include <unordered_set>
 #include <vector>
 
 #include <base/hash_ctxt.h>
@@ -41,12 +40,12 @@ public:
 	bool operator()(int a, int b) { return (g_Config.m_BrSortOrder ? (m_pThis->*m_pfnSort)(b, a) : (m_pThis->*m_pfnSort)(a, b)); }
 };
 
-static bool MatchesPart(const char *a, const char *b)
+bool matchesPart(const char *a, const char *b)
 {
 	return str_utf8_find_nocase(a, b) != nullptr;
 }
 
-static bool MatchesExactly(const char *a, const char *b)
+bool matchesExactly(const char *a, const char *b)
 {
 	return str_comp(a, &b[1]) == 0;
 }
@@ -493,12 +492,12 @@ void CServerBrowser::Filter()
 					{
 						continue;
 					}
-					auto MatchesFn = MatchesPart;
+					auto MatchesFn = matchesPart;
 					const int FilterLen = str_length(aFilterStrTrimmed);
 					if(aFilterStrTrimmed[0] == '"' && aFilterStrTrimmed[FilterLen - 1] == '"')
 					{
 						aFilterStrTrimmed[FilterLen - 1] = '\0';
-						MatchesFn = MatchesExactly;
+						MatchesFn = matchesExactly;
 					}
 
 					// match against server name
@@ -549,12 +548,12 @@ void CServerBrowser::Filter()
 					{
 						continue;
 					}
-					auto MatchesFn = MatchesPart;
+					auto MatchesFn = matchesPart;
 					const int FilterLen = str_length(aExcludeStrTrimmed);
 					if(aExcludeStrTrimmed[0] == '"' && aExcludeStrTrimmed[FilterLen - 1] == '"')
 					{
 						aExcludeStrTrimmed[FilterLen - 1] = '\0';
-						MatchesFn = MatchesExactly;
+						MatchesFn = matchesExactly;
 					}
 
 					// match against server name
@@ -684,22 +683,40 @@ void CServerBrowser::QueueRequest(CServerEntry *pEntry)
 	m_NumRequests++;
 }
 
-static void ServerBrowserFormatAddresses(char *pBuffer, int BufferSize, NETADDR *pAddrs, int NumAddrs)
+void ServerBrowserFormatAddresses(char *pBuffer, int BufferSize, NETADDR *pAddrs, int NumAddrs)
 {
-	pBuffer[0] = '\0';
 	for(int i = 0; i < NumAddrs; i++)
 	{
 		if(i != 0)
 		{
-			str_append(pBuffer, ",", BufferSize);
+			if(BufferSize <= 1)
+			{
+				return;
+			}
+			pBuffer[0] = ',';
+			pBuffer[1] = '\0';
+			pBuffer += 1;
+			BufferSize -= 1;
 		}
+		if(BufferSize <= 1)
+		{
+			return;
+		}
+		char aIpAddr[512];
+		net_addr_str(&pAddrs[i], aIpAddr, sizeof(aIpAddr), true);
 		if(pAddrs[i].type & NETTYPE_TW7)
 		{
-			str_append(pBuffer, "tw-0.7+udp://", BufferSize);
+			str_format(
+				pBuffer,
+				BufferSize,
+				"tw-0.7+udp://%s",
+				aIpAddr);
+			return;
 		}
-		char aIpAddr[NETADDR_MAXSTRSIZE];
-		net_addr_str(&pAddrs[i], aIpAddr, sizeof(aIpAddr), true);
-		str_append(pBuffer, aIpAddr, BufferSize);
+		str_copy(pBuffer, aIpAddr, BufferSize);
+		int Length = str_length(pBuffer);
+		pBuffer += Length;
+		BufferSize -= Length;
 	}
 }
 
@@ -920,8 +937,9 @@ void CServerBrowser::OnServerInfoUpdate(const NETADDR &Addr, int Token, const CS
 			}
 		}
 
-		NETADDR Broadcast = NETADDR_ZEROED;
-		Broadcast.type = (m_pNetClient->NetType() & ~(NETTYPE_WEBSOCKET_IPV4 | NETTYPE_WEBSOCKET_IPV6)) | NETTYPE_LINK_BROADCAST;
+		NETADDR Broadcast;
+		mem_zero(&Broadcast, sizeof(Broadcast));
+		Broadcast.type = m_pNetClient->NetType() | NETTYPE_LINK_BROADCAST;
 		int TokenBC = GenerateToken(Broadcast);
 		bool Drop = false;
 		Drop = Drop || BasicToken != GetBasicToken(TokenBC);
@@ -997,7 +1015,7 @@ void CServerBrowser::Refresh(int Type, bool Force)
 
 		/* do the broadcast version */
 		mem_zero(&Packet, sizeof(Packet));
-		Packet.m_Address.type = (m_pNetClient->NetType() & ~(NETTYPE_WEBSOCKET_IPV4 | NETTYPE_WEBSOCKET_IPV6)) | NETTYPE_LINK_BROADCAST;
+		Packet.m_Address.type = m_pNetClient->NetType() | NETTYPE_LINK_BROADCAST;
 		Packet.m_Flags = NETSENDFLAG_CONNLESS | NETSENDFLAG_EXTENDED;
 		Packet.m_DataSize = sizeof(aBuffer);
 		Packet.m_pData = aBuffer;
@@ -1018,7 +1036,7 @@ void CServerBrowser::Refresh(int Type, bool Force)
 
 		CNetChunk Packet7;
 		mem_zero(&Packet7, sizeof(Packet7));
-		Packet7.m_Address.type = (m_pNetClient->NetType() & ~(NETTYPE_WEBSOCKET_IPV4 | NETTYPE_WEBSOCKET_IPV6)) | NETTYPE_TW7 | NETTYPE_LINK_BROADCAST;
+		Packet7.m_Address.type = m_pNetClient->NetType() | NETTYPE_TW7 | NETTYPE_LINK_BROADCAST;
 		Packet7.m_Flags = NETSENDFLAG_CONNLESS;
 		Packet7.m_DataSize = Packer.Size();
 		Packet7.m_pData = Packer.Data();
@@ -1700,11 +1718,6 @@ bool CServerBrowser::IsGettingServerlist() const
 	return m_pHttp->IsRefreshing();
 }
 
-bool CServerBrowser::IsServerlistError() const
-{
-	return m_pHttp->IsError();
-}
-
 int CServerBrowser::LoadingProgression() const
 {
 	if(m_NumServers == 0)
@@ -1734,7 +1747,7 @@ CServerInfo::ERankState CCommunity::HasRank(const char *pMap) const
 	if(!HasRanks())
 		return CServerInfo::RANK_UNAVAILABLE;
 	const CCommunityMap Needle(pMap);
-	return !m_FinishedMaps.contains(Needle) ? CServerInfo::RANK_UNRANKED : CServerInfo::RANK_RANKED;
+	return m_FinishedMaps.count(Needle) == 0 ? CServerInfo::RANK_UNRANKED : CServerInfo::RANK_RANKED;
 }
 
 const std::vector<CCommunity> &CServerBrowser::Communities() const
@@ -1951,10 +1964,10 @@ const std::vector<CCommunityId> &CFavoriteCommunityFilterList::Entries() const
 }
 
 template<typename TNamedElement, typename TElementName>
-static bool IsSubsetEquals(const std::vector<const TNamedElement *> &vpLeft, const std::set<TElementName> &Right)
+static bool IsSubsetEquals(const std::vector<const TNamedElement *> &vpLeft, const std::unordered_set<TElementName> &Right)
 {
 	return vpLeft.size() <= Right.size() && std::all_of(vpLeft.begin(), vpLeft.end(), [&](const TNamedElement *pElem) {
-		return Right.contains(TElementName(pElem->Name()));
+		return Right.count(TElementName(pElem->Name())) > 0;
 	});
 }
 
@@ -2037,7 +2050,7 @@ void CExcludedCommunityCountryFilterList::Add(const char *pCountryName)
 void CExcludedCommunityCountryFilterList::Add(const char *pCommunityId, const char *pCountryName)
 {
 	CCommunityId CommunityId(pCommunityId);
-	if(!m_Entries.contains(CommunityId))
+	if(m_Entries.find(CommunityId) == m_Entries.end())
 	{
 		m_Entries[CommunityId] = {};
 	}
@@ -2074,7 +2087,8 @@ bool CExcludedCommunityCountryFilterList::Filtered(const char *pCountryName) con
 		return false;
 
 	const auto &CountryEntries = CommunityEntry->second;
-	return !IsSubsetEquals(m_pCommunityCache->SelectableCountries(), CountryEntries) && CountryEntries.contains(CCommunityCountryName(pCountryName));
+	return !IsSubsetEquals(m_pCommunityCache->SelectableCountries(), CountryEntries) &&
+	       CountryEntries.find(CCommunityCountryName(pCountryName)) != CountryEntries.end();
 }
 
 bool CExcludedCommunityCountryFilterList::Empty() const
@@ -2144,7 +2158,7 @@ void CExcludedCommunityCountryFilterList::Clean(const std::vector<CCommunity> &v
 			}
 		}
 		// Prevent filter that would exclude all allowed countries
-		std::set<CCommunityCountryName> UniqueCountries;
+		std::unordered_set<CCommunityCountryName> UniqueCountries;
 		for(const CCommunity &AllowedCommunity : vAllowedCommunities)
 		{
 			for(const CCommunityCountry &Country : AllowedCommunity.Countries())
@@ -2195,7 +2209,7 @@ void CExcludedCommunityTypeFilterList::Add(const char *pTypeName)
 void CExcludedCommunityTypeFilterList::Add(const char *pCommunityId, const char *pTypeName)
 {
 	CCommunityId CommunityId(pCommunityId);
-	if(!m_Entries.contains(CommunityId))
+	if(m_Entries.find(CommunityId) == m_Entries.end())
 	{
 		m_Entries[CommunityId] = {};
 	}
@@ -2232,7 +2246,8 @@ bool CExcludedCommunityTypeFilterList::Filtered(const char *pTypeName) const
 		return false;
 
 	const auto &TypeEntries = CommunityEntry->second;
-	return !IsSubsetEquals(m_pCommunityCache->SelectableTypes(), TypeEntries) && TypeEntries.contains(CCommunityTypeName(pTypeName));
+	return !IsSubsetEquals(m_pCommunityCache->SelectableTypes(), TypeEntries) &&
+	       TypeEntries.find(CCommunityTypeName(pTypeName)) != TypeEntries.end();
 }
 
 bool CExcludedCommunityTypeFilterList::Empty() const

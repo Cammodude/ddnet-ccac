@@ -48,9 +48,9 @@ public:
 	void Snap(int SnappingClient);
 	void FakeSnap();
 
-	void OnDirectInput(const CNetObj_PlayerInput *pNewInput);
-	void OnPredictedInput(const CNetObj_PlayerInput *pNewInput);
-	void OnPredictedEarlyInput(const CNetObj_PlayerInput *pNewInput);
+	void OnDirectInput(CNetObj_PlayerInput *pNewInput);
+	void OnPredictedInput(CNetObj_PlayerInput *pNewInput);
+	void OnPredictedEarlyInput(CNetObj_PlayerInput *pNewInput);
 	void OnDisconnect();
 
 	void KillCharacter(int Weapon = WEAPON_GAME, bool SendKillMsg = true);
@@ -73,8 +73,8 @@ public:
 
 	int m_SentSnaps = 0;
 
-	int SpectatorId() const { return m_SpectatorId; }
-	void SetSpectatorId(int Id);
+	// used for spectator mode
+	int m_SpectatorId;
 
 	bool m_IsReady;
 
@@ -133,9 +133,6 @@ private:
 	int m_ClientId;
 	int m_Team;
 
-	// used for spectator mode
-	int m_SpectatorId;
-
 	int m_Paused;
 	int64_t m_ForcePauseTime;
 	int64_t m_LastPause;
@@ -177,7 +174,7 @@ public:
 
 	bool IsPlaying() const;
 	int64_t m_Last_KickVote;
-	int64_t m_LastDDRaceTeamChange;
+	int64_t m_Last_Team;
 	int m_ShowOthers;
 	bool m_ShowAll;
 	vec2 m_ShowDistance;
@@ -238,7 +235,6 @@ public:
 	int m_RescueMode;
 
 	CSaveTee m_LastTeleTee;
-	std::optional<CSaveTee> m_LastDeath;
 };
 
 #endif

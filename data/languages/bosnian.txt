@@ -732,6 +732,9 @@ may cause delay
 Screen
 == Ekran
 
+Use high DPI
+== Koristi visoki DPI
+
 Enable game sounds
 == Omogući zvukove igre
 
@@ -837,6 +840,9 @@ AntiPing: predict grenade paths
 Show other players' hook collision lines
 == Prikaži linije sudaranja lanca od ostalih igrača
 
+Show other players' key presses
+== Prikaži tipke koje ostali igrači pritiskaju
+
 Show tiles layers from BG map
 == Prikaži slojeve od pozadinske mape
 
@@ -888,16 +894,12 @@ Best
 9+ new mentions
 == 9+ novih označenja
 
-[Translation credits: Add your own name here when you update translations]
-English translation by the DDNet Team
-== Bosnian translation by *** and MikiGamer
-
 [Graphics error]
 Failed during initialization. Try to change gfx_backend to OpenGL or Vulkan in settings_ddnet.cfg in the config directory and try again.
 == 
 
 [Graphics error]
-Out of VRAM. Try setting 'cl_skins_loaded_max' to a lower value or remove custom assets (skins, entities, etc.), especially those with high resolution.
+Out of VRAM. Try removing custom assets (skins, entities, etc.), especially those with high resolution.
 == 
 
 [Graphics error]
@@ -952,9 +954,6 @@ Saving settings to '%s' failed
 Error saving settings
 == 
 
-No demo with this filename exists
-== 
-
 The width of texture %s is not divisible by %d, or the height is not divisible by %d, which might cause visual bugs.
 == 
 
@@ -1004,6 +1003,9 @@ Restarting. Please wait…
 == 
 
 Loading skin files
+== 
+
+Loading background map
 == 
 
 Auto-sync player camera
@@ -1078,10 +1080,6 @@ Multi-View
 == 
 
 [Spectating]
-Following %d: %s
-== 
-
-[Spectating]
 Following %s
 == 
 
@@ -1093,9 +1091,6 @@ Team %d
 == 
 
 Some map images could not be loaded. Check the local console for details.
-== 
-
-Loading map
 == 
 
 Uploading map data to GPU
@@ -1149,9 +1144,6 @@ There's an unsaved map in the editor, you might want to save it.
 Continue anyway?
 == 
 
-This name cannot be used for files and folders
-== 
-
 A demo with this name already exists
 == 
 
@@ -1182,19 +1174,10 @@ Join Tutorial Server
 Skip Tutorial
 == 
 
-Cancel
-== 
-
-Error checking player name
-== 
-
-Could not check for existing player with your name. Check your internet connection.
+Unable to save the skin
 == 
 
 Unable to save the skin with a reserved name
-== 
-
-Unable to save the skin
 == 
 
 Trying to determine UDP connectivity…
@@ -1337,11 +1320,11 @@ Go back the specified duration
 == 
 
 [Demo player duration]
-%s min.
+%d min.
 == 
 
 [Demo player duration]
-%s sec.
+%d sec.
 == 
 
 Change the skip duration
@@ -1416,20 +1399,17 @@ Folder Link
 Created
 == 
 
-%.2f MiB
-== 
-
-%.2f KiB
-== 
-
 Netversion
-== 
-
-Map size
 == 
 
 [Demo details]
 map not included
+== 
+
+%.2f MiB
+== 
+
+%.2f KiB
 == 
 
 Demos directory
@@ -1639,22 +1619,10 @@ Download skins
 Download community skins
 == 
 
-This skin name cannot be used.
-== 
-
-Skin could not be loaded due to an error. Check the local console for details.
-== 
-
-Skin could not be found.
-== 
-
 Create a random skin
 == 
 
 Choose default eyes when joining a server
-== 
-
-No skins match your filter criteria
 == 
 
 Skin Database
@@ -1722,6 +1690,9 @@ Reset controls
 Are you sure that you want to reset the controls to their defaults?
 == 
 
+Cancel
+== 
+
 Windowed
 == 
 
@@ -1766,6 +1737,10 @@ Chat sound volume
 
 Background music volume
 == 
+
+[Translation credits: Add your own name here when you update translations]
+English translation by the DDNet Team
+== Bosnian translation by *** and MikiGamer
 
 Tee
 == 
@@ -1818,9 +1793,6 @@ Show DDRace HUD
 Show jumps indicator
 == 
 
-Show number of spectators
-== 
-
 Show dummy actions
 == 
 
@@ -1857,35 +1829,10 @@ Chat width
 Preview
 == 
 
-[Show name plates]
-None
-== 
-
-[Show name plates]
-Own
-== 
-
-[Show name plates]
-Others
-== 
-
-[Show name plates]
-All
-== 
-
-Name plates offset
-== 
-
-Show friend icon in name plates
+Show friend mark (♥) in name plates
 == 
 
 Show client IDs in name plates
-== 
-
-Show client IDs on a seperate line
-== 
-
-Client IDs size
 == 
 
 Hook Strength
@@ -1903,32 +1850,10 @@ Size of hook strength icon and number indicator
 Key Presses
 == 
 
-Show players' key presses
-== 
-
-[Show players' key presses]
-None
-== 
-
-[Show players' key presses]
-Own
-== 
-
-[Show players' key presses]
-Others
-== 
-
-[Show players' key presses]
-All
+Show local player's key presses
 == 
 
 Size of key press icons
-== 
-
-Preview player's name plate
-== 
-
-Preview dummy's name plate
 == 
 
 Hook collision line
@@ -2009,12 +1934,6 @@ Freeze Laser Outline Color
 Freeze Laser Inner Color
 == 
 
-Dragger Outline Color
-== 
-
-Dragger Inner Color
-== 
-
 Set all to Rifle
 == 
 
@@ -2043,9 +1962,6 @@ AntiPing
 == 
 
 Tries to predict other entities to give a feel of low latency
-== 
-
-AntiPing: prediction margin
 == 
 
 Background

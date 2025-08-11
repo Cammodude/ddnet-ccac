@@ -149,7 +149,8 @@ void CQuadEditTracker::AddQuadPointPropTrack(EQuadPointProp Prop)
 			{
 				if(m_SelectedQuadPoints & (1 << v))
 				{
-					m_PreviousValuesPoint[QuadIndex][v][Prop] = PackColor(Quad.m_aColors[v]);
+					int Color = PackColor(Quad.m_aColors[v]);
+					m_PreviousValuesPoint[QuadIndex][v][Prop] = Color;
 				}
 			}
 		}
@@ -453,19 +454,19 @@ void CLayerTilesPropTracker::OnStart(ETilesProp Prop)
 	if(Prop == ETilesProp::PROP_WIDTH || Prop == ETilesProp::PROP_HEIGHT)
 	{
 		m_SavedLayers[LAYERTYPE_TILES] = m_pObject->Duplicate();
-		if(m_pObject->m_HasGame || m_pObject->m_HasFront || m_pObject->m_HasSwitch || m_pObject->m_HasSpeedup || m_pObject->m_HasTune || m_pObject->m_HasTele)
+		if(m_pObject->m_Game || m_pObject->m_Front || m_pObject->m_Switch || m_pObject->m_Speedup || m_pObject->m_Tune || m_pObject->m_Tele)
 		{ // Need to save all entities layers when any entity layer
-			if(m_pEditor->m_Map.m_pFrontLayer && !m_pObject->m_HasFront)
+			if(m_pEditor->m_Map.m_pFrontLayer && !m_pObject->m_Front)
 				m_SavedLayers[LAYERTYPE_FRONT] = m_pEditor->m_Map.m_pFrontLayer->Duplicate();
-			if(m_pEditor->m_Map.m_pTeleLayer && !m_pObject->m_HasTele)
+			if(m_pEditor->m_Map.m_pTeleLayer && !m_pObject->m_Tele)
 				m_SavedLayers[LAYERTYPE_TELE] = m_pEditor->m_Map.m_pTeleLayer->Duplicate();
-			if(m_pEditor->m_Map.m_pSwitchLayer && !m_pObject->m_HasSwitch)
+			if(m_pEditor->m_Map.m_pSwitchLayer && !m_pObject->m_Switch)
 				m_SavedLayers[LAYERTYPE_SWITCH] = m_pEditor->m_Map.m_pSwitchLayer->Duplicate();
-			if(m_pEditor->m_Map.m_pSpeedupLayer && !m_pObject->m_HasSpeedup)
+			if(m_pEditor->m_Map.m_pSpeedupLayer && !m_pObject->m_Speedup)
 				m_SavedLayers[LAYERTYPE_SPEEDUP] = m_pEditor->m_Map.m_pSpeedupLayer->Duplicate();
-			if(m_pEditor->m_Map.m_pTuneLayer && !m_pObject->m_HasTune)
+			if(m_pEditor->m_Map.m_pTuneLayer && !m_pObject->m_Tune)
 				m_SavedLayers[LAYERTYPE_TUNE] = m_pEditor->m_Map.m_pTuneLayer->Duplicate();
-			if(!m_pObject->m_HasGame)
+			if(!m_pObject->m_Game)
 				m_SavedLayers[LAYERTYPE_GAME] = m_pEditor->m_Map.m_pGameLayer->Duplicate();
 		}
 	}
@@ -490,7 +491,6 @@ int CLayerTilesPropTracker::PropToValue(ETilesProp Prop)
 	switch(Prop)
 	{
 	case ETilesProp::PROP_AUTOMAPPER: return m_pObject->m_AutoMapperConfig;
-	case ETilesProp::PROP_LIVE_GAMETILES: return m_pObject->m_LiveGameTiles;
 	case ETilesProp::PROP_COLOR: return PackColor(m_pObject->m_Color);
 	case ETilesProp::PROP_COLOR_ENV: return m_pObject->m_ColorEnv;
 	case ETilesProp::PROP_COLOR_ENV_OFFSET: return m_pObject->m_ColorEnvOffset;

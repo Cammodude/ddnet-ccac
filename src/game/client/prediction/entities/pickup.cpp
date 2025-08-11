@@ -29,9 +29,7 @@ void CPickup::Tick()
 			switch(m_Type)
 			{
 			case POWERUP_HEALTH:
-				if(!GameWorld()->m_WorldConfig.m_PredictDDRace)
-					continue;
-				pChr->Freeze();
+				//pChr->Freeze();
 				break;
 
 			case POWERUP_ARMOR:
@@ -154,7 +152,6 @@ CPickup::CPickup(CGameWorld *pGameWorld, int Id, const CPickupData *pPickup) :
 	m_Id = Id;
 	m_Number = pPickup->m_SwitchNumber;
 	m_Layer = m_Number > 0 ? LAYER_SWITCH : LAYER_GAME;
-	m_Flags = pPickup->m_Flags;
 }
 
 void CPickup::FillInfo(CNetObj_Pickup *pPickup)

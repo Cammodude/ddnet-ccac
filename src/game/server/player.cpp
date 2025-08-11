@@ -45,7 +45,7 @@ void CPlayer::Reset()
 	m_JoinTick = Server()->Tick();
 	delete m_pCharacter;
 	m_pCharacter = nullptr;
-	SetSpectatorId(SPEC_FREEVIEW);
+	m_SpectatorId = SPEC_FREEVIEW;
 	m_LastActionTick = Server()->Tick();
 	m_TeamChangeTick = Server()->Tick();
 	m_LastSetTeam = 0;
@@ -108,7 +108,7 @@ void CPlayer::Reset()
 	GameServer()->Score()->PlayerData(m_ClientId)->Reset();
 
 	m_Last_KickVote = 0;
-	m_LastDDRaceTeamChange = 0;
+	m_Last_Team = 0;
 	m_ShowOthers = g_Config.m_SvShowOthersDefault;
 	m_ShowAll = g_Config.m_SvShowAllDefault;
 	m_ShowDistance = vec2(1200, 800);
@@ -123,6 +123,7 @@ void CPlayer::Reset()
 	m_Score.reset();
 
 	// Variable initialized:
+	m_Last_Team = 0;
 	m_LastSqlQuery = 0;
 	m_ScoreQueryResult = nullptr;
 	m_ScoreFinishResult = nullptr;
@@ -476,7 +477,7 @@ void CPlayer::Snap(int SnappingClient)
 	if(m_Paused == PAUSE_PAUSED)
 		pDDNetPlayer->m_Flags |= EXPLAYERFLAG_PAUSED;
 
-	if(Server()->IsSixup(SnappingClient) && m_pCharacter && m_pCharacter->m_DDRaceState == ERaceState::STARTED &&
+	if(Server()->IsSixup(SnappingClient) && m_pCharacter && m_pCharacter->m_DDRaceState == DDRACE_STARTED &&
 		GameServer()->m_apPlayers[SnappingClient]->m_TimerType == TIMERTYPE_SIXUP)
 	{
 		protocol7::CNetObj_PlayerInfoRace *pRaceInfo = Server()->SnapNewItem<protocol7::CNetObj_PlayerInfoRace>(id);
@@ -553,7 +554,7 @@ void CPlayer::OnDisconnect()
 	m_Moderating = false;
 }
 
-void CPlayer::OnPredictedInput(const CNetObj_PlayerInput *pNewInput)
+void CPlayer::OnPredictedInput(CNetObj_PlayerInput *pNewInput)
 {
 	// skip the input if chat is active
 	if((m_PlayerFlags & PLAYERFLAG_CHATTING) && (pNewInput->m_PlayerFlags & PLAYERFLAG_CHATTING))
@@ -571,7 +572,7 @@ void CPlayer::OnPredictedInput(const CNetObj_PlayerInput *pNewInput)
 		GameServer()->SendBroadcast(g_Config.m_SvClientSuggestion, m_ClientId);
 }
 
-void CPlayer::OnDirectInput(const CNetObj_PlayerInput *pNewInput)
+void CPlayer::OnDirectInput(CNetObj_PlayerInput *pNewInput)
 {
 	Server()->SetClientFlags(m_ClientId, pNewInput->m_PlayerFlags);
 
@@ -581,12 +582,7 @@ void CPlayer::OnDirectInput(const CNetObj_PlayerInput *pNewInput)
 		m_ViewPos = vec2(pNewInput->m_TargetX, pNewInput->m_TargetY);
 
 	// check for activity
-	// if a player is killed, their scoreboard opens automatically, so ignore that flag
-	CNetObj_PlayerInput NewWithoutScoreboard = *pNewInput;
-	CNetObj_PlayerInput LastWithoutScoreboard = *m_pLastTarget;
-	NewWithoutScoreboard.m_PlayerFlags &= ~PLAYERFLAG_SCOREBOARD;
-	LastWithoutScoreboard.m_PlayerFlags &= ~PLAYERFLAG_SCOREBOARD;
-	if(mem_comp(&NewWithoutScoreboard, &LastWithoutScoreboard, sizeof(CNetObj_PlayerInput)))
+	if(mem_comp(pNewInput, m_pLastTarget, sizeof(CNetObj_PlayerInput)))
 	{
 		mem_copy(m_pLastTarget, pNewInput, sizeof(CNetObj_PlayerInput));
 		// Ignore the first direct input and keep the player afk as it is sent automatically
@@ -597,7 +593,7 @@ void CPlayer::OnDirectInput(const CNetObj_PlayerInput *pNewInput)
 	}
 }
 
-void CPlayer::OnPredictedEarlyInput(const CNetObj_PlayerInput *pNewInput)
+void CPlayer::OnPredictedEarlyInput(CNetObj_PlayerInput *pNewInput)
 {
 	m_PlayerFlags = pNewInput->m_PlayerFlags;
 
@@ -667,7 +663,7 @@ void CPlayer::SetTeam(int Team, bool DoChatMsg)
 	m_Team = Team;
 	m_LastSetTeam = Server()->Tick();
 	m_LastActionTick = Server()->Tick();
-	SetSpectatorId(SPEC_FREEVIEW);
+	m_SpectatorId = SPEC_FREEVIEW;
 
 	protocol7::CNetMsg_Sv_Team Msg;
 	Msg.m_ClientId = m_ClientId;
@@ -682,7 +678,7 @@ void CPlayer::SetTeam(int Team, bool DoChatMsg)
 		for(auto &pPlayer : GameServer()->m_apPlayers)
 		{
 			if(pPlayer && pPlayer->m_SpectatorId == m_ClientId)
-				pPlayer->SetSpectatorId(SPEC_FREEVIEW);
+				pPlayer->m_SpectatorId = SPEC_FREEVIEW;
 		}
 	}
 
@@ -819,7 +815,7 @@ void CPlayer::ProcessPause()
 	if(m_ForcePauseTime && m_ForcePauseTime < Server()->Tick())
 	{
 		m_ForcePauseTime = 0;
-		GameServer()->SendChatTarget(m_ClientId, "The force pause timer is now over, you can exit with /spec");
+		Pause(PAUSE_NONE, true);
 	}
 
 	if(m_Paused == PAUSE_SPEC && !m_pCharacter->IsPaused() && CanSpec())
@@ -917,15 +913,10 @@ void CPlayer::SpectatePlayerName(const char *pName)
 	{
 		if(i != m_ClientId && Server()->ClientIngame(i) && !str_comp(pName, Server()->ClientName(i)))
 		{
-			SetSpectatorId(i);
+			m_SpectatorId = i;
 			return;
 		}
 	}
-}
-
-void CPlayer::SetSpectatorId(int Id)
-{
-	m_SpectatorId = Id;
 }
 
 void CPlayer::ProcessScoreResult(CScorePlayerResult &Result)

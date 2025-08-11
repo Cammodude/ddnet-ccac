@@ -4,6 +4,12 @@
 #include <cstdarg>
 #include <cstdint>
 
+#ifdef __GNUC__
+#define GNUC_ATTRIBUTE(x) __attribute__(x)
+#else
+#define GNUC_ATTRIBUTE(x)
+#endif
+
 enum LEVEL : char
 {
 	LEVEL_ERROR,
@@ -47,7 +53,8 @@ struct LOG_COLOR
  * @param sys A string that describes what system the message belongs to.
  * @param fmt A printf styled format string.
  */
-[[gnu::format(printf, 3, 4)]] void log_log(LEVEL level, const char *sys, const char *fmt, ...);
+void log_log(LEVEL level, const char *sys, const char *fmt, ...)
+	GNUC_ATTRIBUTE((format(printf, 3, 4)));
 
 /**
  * @ingroup Log
@@ -59,7 +66,8 @@ struct LOG_COLOR
  * @param sys A string that describes what system the message belongs to.
  * @param fmt A printf styled format string.
  */
-[[gnu::format(printf, 4, 5)]] void log_log_color(LEVEL level, LOG_COLOR color, const char *sys, const char *fmt, ...);
+void log_log_color(LEVEL level, LOG_COLOR color, const char *sys, const char *fmt, ...)
+	GNUC_ATTRIBUTE((format(printf, 4, 5)));
 
 /**
  * @ingroup Log
@@ -71,7 +79,8 @@ struct LOG_COLOR
  * @param fmt A printf styled format string.
  * @param args The variable argument list.
  */
-[[gnu::format(printf, 3, 0)]] void log_log_v(LEVEL level, const char *sys, const char *fmt, va_list args);
+void log_log_v(LEVEL level, const char *sys, const char *fmt, va_list args)
+	GNUC_ATTRIBUTE((format(printf, 3, 0)));
 
 /**
  * @ingroup Log
@@ -84,6 +93,6 @@ struct LOG_COLOR
  * @param fmt A printf styled format string.
  * @param args The variable argument list.
  */
-[[gnu::format(printf, 4, 0)]] void log_log_color_v(LEVEL level, LOG_COLOR color, const char *sys, const char *fmt, va_list args);
-
+void log_log_color_v(LEVEL level, LOG_COLOR color, const char *sys, const char *fmt, va_list args)
+	GNUC_ATTRIBUTE((format(printf, 4, 0)));
 #endif // BASE_LOG_H

@@ -8,6 +8,8 @@
 
 using namespace FontIcons;
 
+const ColorRGBA CEditor::ms_DefaultPropColor = ColorRGBA(1, 1, 1, 0.5f);
+
 int CEditor::DoProperties(CUIRect *pToolbox, CProperty *pProps, int *pIds, int *pNewVal, const std::vector<ColorRGBA> &vColors)
 {
 	auto Res = DoPropertiesWithState<int>(pToolbox, pProps, pIds, pNewVal, vColors);
@@ -49,13 +51,13 @@ SEditResult<E> CEditor::DoPropertiesWithState(CUIRect *pToolBox, CProperty *pPro
 			}
 			if(DoButton_FontIcon((char *)&pIds[i] + 1, FONT_ICON_MINUS, 0, &Dec, BUTTONFLAG_LEFT, "Decrease value.", IGraphics::CORNER_L, 7.0f))
 			{
-				*pNewVal = std::clamp(pProps[i].m_Value - 1, pProps[i].m_Min, pProps[i].m_Max);
+				*pNewVal = clamp(pProps[i].m_Value - 1, pProps[i].m_Min, pProps[i].m_Max);
 				Change = i;
 				State = EEditState::ONE_GO;
 			}
 			if(DoButton_FontIcon(((char *)&pIds[i]) + 2, FONT_ICON_PLUS, 0, &Inc, BUTTONFLAG_LEFT, "Increase value.", IGraphics::CORNER_R, 7.0f))
 			{
-				*pNewVal = std::clamp(pProps[i].m_Value + 1, pProps[i].m_Min, pProps[i].m_Max);
+				*pNewVal = clamp(pProps[i].m_Value + 1, pProps[i].m_Min, pProps[i].m_Max);
 				Change = i;
 				State = EEditState::ONE_GO;
 			}
@@ -221,7 +223,7 @@ SEditResult<E> CEditor::DoPropertiesWithState(CUIRect *pToolBox, CProperty *pPro
 			if(pProps[i].m_Value < 0)
 				pName = "None";
 			else
-				pName = AUTOMAP_REFERENCE_NAMES[pProps[i].m_Value];
+				pName = g_apAutoMapReferenceNames[pProps[i].m_Value];
 
 			if(DoButton_Ex(&pIds[i], pName, 0, &Shifter, BUTTONFLAG_LEFT, nullptr, IGraphics::CORNER_ALL))
 				PopupSelectAutoMapReferenceInvoke(pProps[i].m_Value, Ui()->MouseX(), Ui()->MouseY());

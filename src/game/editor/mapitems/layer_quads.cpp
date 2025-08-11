@@ -74,14 +74,38 @@ CQuad *CLayerQuads::NewQuad(int x, int y, int Width, int Height)
 	pQuad->m_aTexcoords[3].x = i2fx(1);
 	pQuad->m_aTexcoords[3].y = i2fx(1);
 
-	std::fill(std::begin(pQuad->m_aColors), std::end(pQuad->m_aColors), CColor{255, 255, 255, 255});
+	pQuad->m_aColors[0].r = 255;
+	pQuad->m_aColors[0].g = 255;
+	pQuad->m_aColors[0].b = 255;
+	pQuad->m_aColors[0].a = 255;
+	pQuad->m_aColors[1].r = 255;
+	pQuad->m_aColors[1].g = 255;
+	pQuad->m_aColors[1].b = 255;
+	pQuad->m_aColors[1].a = 255;
+	pQuad->m_aColors[2].r = 255;
+	pQuad->m_aColors[2].g = 255;
+	pQuad->m_aColors[2].b = 255;
+	pQuad->m_aColors[2].a = 255;
+	pQuad->m_aColors[3].r = 255;
+	pQuad->m_aColors[3].g = 255;
+	pQuad->m_aColors[3].b = 255;
+	pQuad->m_aColors[3].a = 255;
 
 	return pQuad;
 }
 
 void CLayerQuads::BrushSelecting(CUIRect Rect)
 {
-	Rect.DrawOutline(ColorRGBA(1.0f, 1.0f, 1.0f, 1.0f));
+	// draw selection rectangle
+	IGraphics::CLineItem Array[4] = {
+		IGraphics::CLineItem(Rect.x, Rect.y, Rect.x + Rect.w, Rect.y),
+		IGraphics::CLineItem(Rect.x + Rect.w, Rect.y, Rect.x + Rect.w, Rect.y + Rect.h),
+		IGraphics::CLineItem(Rect.x + Rect.w, Rect.y + Rect.h, Rect.x, Rect.y + Rect.h),
+		IGraphics::CLineItem(Rect.x, Rect.y + Rect.h, Rect.x, Rect.y)};
+	Graphics()->TextureClear();
+	Graphics()->LinesBegin();
+	Graphics()->LinesDraw(Array, 4);
+	Graphics()->LinesEnd();
 }
 
 int CLayerQuads::BrushGrab(std::shared_ptr<CLayerGroup> pBrush, CUIRect Rect)
@@ -91,21 +115,23 @@ int CLayerQuads::BrushGrab(std::shared_ptr<CLayerGroup> pBrush, CUIRect Rect)
 	pGrabbed->m_Image = m_Image;
 	pBrush->AddLayer(pGrabbed);
 
+	//dbg_msg("", "%f %f %f %f", rect.x, rect.y, rect.w, rect.h);
 	for(const auto &Quad : m_vQuads)
 	{
-		float PointX = fx2f(Quad.m_aPoints[4].x);
-		float PointY = fx2f(Quad.m_aPoints[4].y);
+		float px = fx2f(Quad.m_aPoints[4].x);
+		float py = fx2f(Quad.m_aPoints[4].y);
 
-		if(PointX > Rect.x && PointX < Rect.x + Rect.w && PointY > Rect.y && PointY < Rect.y + Rect.h)
+		if(px > Rect.x && px < Rect.x + Rect.w && py > Rect.y && py < Rect.y + Rect.h)
 		{
-			CQuad NewQuad = Quad;
-			for(auto &Point : NewQuad.m_aPoints)
+			CQuad n = Quad;
+
+			for(auto &Point : n.m_aPoints)
 			{
 				Point.x -= f2fx(Rect.x);
 				Point.y -= f2fx(Rect.y);
 			}
 
-			pGrabbed->m_vQuads.push_back(NewQuad);
+			pGrabbed->m_vQuads.push_back(n);
 		}
 	}
 
@@ -118,15 +144,16 @@ void CLayerQuads::BrushPlace(std::shared_ptr<CLayer> pBrush, vec2 WorldPos)
 	std::vector<CQuad> vAddedQuads;
 	for(const auto &Quad : pQuadLayer->m_vQuads)
 	{
-		CQuad NewQuad = Quad;
-		for(auto &Point : NewQuad.m_aPoints)
+		CQuad n = Quad;
+
+		for(auto &Point : n.m_aPoints)
 		{
 			Point.x += f2fx(WorldPos.x);
 			Point.y += f2fx(WorldPos.y);
 		}
 
-		m_vQuads.push_back(NewQuad);
-		vAddedQuads.push_back(NewQuad);
+		m_vQuads.push_back(n);
+		vAddedQuads.push_back(n);
 	}
 	m_pEditor->m_EditorHistory.RecordAction(std::make_shared<CEditorActionQuadPlace>(m_pEditor, m_pEditor->m_SelectedGroup, m_pEditor->m_vSelectedLayers[0], vAddedQuads));
 	m_pEditor->m_Map.OnModify();
@@ -152,7 +179,7 @@ void CLayerQuads::BrushFlipY()
 	m_pEditor->m_Map.OnModify();
 }
 
-static void Rotate(vec2 *pCenter, vec2 *pPoint, float Rotation)
+void Rotate(vec2 *pCenter, vec2 *pPoint, float Rotation)
 {
 	float x = pPoint->x - pCenter->x;
 	float y = pPoint->y - pCenter->y;
@@ -225,17 +252,17 @@ CUi::EPopupMenuFunctionResult CLayerQuads::RenderProperties(CUIRect *pToolBox)
 	return CUi::POPUP_KEEP_OPEN;
 }
 
-void CLayerQuads::ModifyImageIndex(const FIndexModifyFunction &IndexModifyFunction)
+void CLayerQuads::ModifyImageIndex(FIndexModifyFunction Func)
 {
-	IndexModifyFunction(&m_Image);
+	Func(&m_Image);
 }
 
-void CLayerQuads::ModifyEnvelopeIndex(const FIndexModifyFunction &IndexModifyFunction)
+void CLayerQuads::ModifyEnvelopeIndex(FIndexModifyFunction Func)
 {
 	for(auto &Quad : m_vQuads)
 	{
-		IndexModifyFunction(&Quad.m_PosEnv);
-		IndexModifyFunction(&Quad.m_ColorEnv);
+		Func(&Quad.m_PosEnv);
+		Func(&Quad.m_ColorEnv);
 	}
 }
 

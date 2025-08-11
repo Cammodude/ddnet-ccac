@@ -129,6 +129,19 @@ void CGameWorld::Snap(int SnappingClient)
 	}
 }
 
+void CGameWorld::PostSnap()
+{
+	for(auto *pEnt : m_apFirstEntityTypes)
+	{
+		for(; pEnt;)
+		{
+			m_pNextTraverseEntity = pEnt->m_pNextTypeEntity;
+			pEnt->PostSnap();
+			pEnt = m_pNextTraverseEntity;
+		}
+	}
+}
+
 void CGameWorld::Reset()
 {
 	// reset all entities
@@ -281,40 +294,37 @@ void CGameWorld::SwapClients(int Client1, int Client2)
 		}
 }
 
+// TODO: should be more general
 CCharacter *CGameWorld::IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, vec2 &NewPos, const CCharacter *pNotThis, int CollideWith, const CCharacter *pThisOnly)
 {
-	return (CCharacter *)IntersectEntity(Pos0, Pos1, Radius, ENTTYPE_CHARACTER, NewPos, pNotThis, CollideWith, pThisOnly);
-}
-
-CEntity *CGameWorld::IntersectEntity(vec2 Pos0, vec2 Pos1, float Radius, int Type, vec2 &NewPos, const CEntity *pNotThis, int CollideWith, const CEntity *pThisOnly)
-{
+	// Find other players
 	float ClosestLen = distance(Pos0, Pos1) * 100.0f;
-	CEntity *pClosest = nullptr;
+	CCharacter *pClosest = nullptr;
 
-	CEntity *pEntity = FindFirst(Type);
-	for(; pEntity; pEntity = pEntity->TypeNext())
+	CCharacter *p = (CCharacter *)FindFirst(ENTTYPE_CHARACTER);
+	for(; p; p = (CCharacter *)p->TypeNext())
 	{
-		if(pEntity == pNotThis)
+		if(p == pNotThis)
 			continue;
 
-		if(pThisOnly && pEntity != pThisOnly)
+		if(pThisOnly && p != pThisOnly)
 			continue;
 
-		if(CollideWith != -1 && !pEntity->CanCollide(CollideWith))
+		if(CollideWith != -1 && !p->CanCollide(CollideWith))
 			continue;
 
 		vec2 IntersectPos;
-		if(closest_point_on_line(Pos0, Pos1, pEntity->m_Pos, IntersectPos))
+		if(closest_point_on_line(Pos0, Pos1, p->m_Pos, IntersectPos))
 		{
-			float Len = distance(pEntity->m_Pos, IntersectPos);
-			if(Len < pEntity->m_ProximityRadius + Radius)
+			float Len = distance(p->m_Pos, IntersectPos);
+			if(Len < p->m_ProximityRadius + Radius)
 			{
 				Len = distance(Pos0, IntersectPos);
 				if(Len < ClosestLen)
 				{
 					NewPos = IntersectPos;
 					ClosestLen = Len;
-					pClosest = pEntity;
+					pClosest = p;
 				}
 			}
 		}

@@ -307,8 +307,7 @@ public:
 	CServerBrowserHttp(IEngine *pEngine, IHttp *pHttp, const char **ppUrls, int NumUrls, int PreviousBestIndex);
 	~CServerBrowserHttp() override;
 	void Update() override;
-	bool IsRefreshing() const override { return m_State != STATE_DONE && m_State != STATE_NO_MASTER; }
-	bool IsError() const override { return m_State == STATE_NO_MASTER; }
+	bool IsRefreshing() override { return m_State != STATE_DONE; }
 	void Refresh() override;
 	bool GetBestUrl(const char **pBestUrl) const override { return m_pChooseMaster->GetBestUrl(pBestUrl); }
 
@@ -335,7 +334,7 @@ private:
 
 	IHttp *m_pHttp;
 
-	int m_State = STATE_WANTREFRESH;
+	int m_State = STATE_DONE;
 	std::shared_ptr<CHttpRequest> m_pGetServers;
 	std::unique_ptr<CChooseMaster> m_pChooseMaster;
 
@@ -346,7 +345,7 @@ CServerBrowserHttp::CServerBrowserHttp(IEngine *pEngine, IHttp *pHttp, const cha
 	m_pHttp(pHttp),
 	m_pChooseMaster(new CChooseMaster(pEngine, pHttp, Validate, ppUrls, NumUrls, PreviousBestIndex))
 {
-	Refresh();
+	m_pChooseMaster->Refresh();
 }
 
 CServerBrowserHttp::~CServerBrowserHttp()
@@ -423,7 +422,7 @@ void CServerBrowserHttp::Refresh()
 		m_State = STATE_WANTREFRESH;
 	Update();
 }
-static bool ServerbrowserParseUrl(NETADDR *pOut, const char *pUrl)
+bool ServerbrowserParseUrl(NETADDR *pOut, const char *pUrl)
 {
 	int Failure = net_addr_from_url(pOut, pUrl, nullptr, 0);
 	if(Failure || pOut->port == 0)

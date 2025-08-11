@@ -41,13 +41,12 @@ enum class IPRESOLVE
 	V6,
 };
 
-class CTimeout
+struct CTimeout
 {
-public:
-	long m_ConnectTimeoutMs;
-	long m_TimeoutMs;
-	long m_LowSpeedLimit;
-	long m_LowSpeedTime;
+	long ConnectTimeoutMs;
+	long TimeoutMs;
+	long LowSpeedLimit;
+	long LowSpeedTime;
 };
 
 class CHttpRequest : public IHttpRequest
@@ -129,8 +128,8 @@ class CHttpRequest : public IHttpRequest
 
 	int m_StatusCode = 0;
 	bool m_HeadersEnded = false;
-	std::optional<int64_t> m_ResultDate = std::nullopt;
-	std::optional<int64_t> m_ResultLastModified = std::nullopt;
+	std::optional<int64_t> m_ResultDate = {};
+	std::optional<int64_t> m_ResultLastModified = {};
 
 	bool ShouldSkipRequest();
 	// Abort the request with an error if `BeforeInit()` returns false.
@@ -316,13 +315,13 @@ class CHttp : public IHttp
 
 	void *m_pThread = nullptr;
 
-	std::mutex m_Lock;
-	std::condition_variable m_Cv;
+	std::mutex m_Lock{};
+	std::condition_variable m_Cv{};
 	std::atomic<EState> m_State = UNINITIALIZED;
-	std::deque<std::shared_ptr<CHttpRequest>> m_PendingRequests;
-	std::unordered_map<void *, std::shared_ptr<CHttpRequest>> m_RunningRequests; // void * == CURL *
+	std::deque<std::shared_ptr<CHttpRequest>> m_PendingRequests{};
+	std::unordered_map<void *, std::shared_ptr<CHttpRequest>> m_RunningRequests{}; // void * == CURL *
 	std::chrono::milliseconds m_ShutdownDelay{};
-	std::optional<std::chrono::time_point<std::chrono::steady_clock>> m_ShutdownTime;
+	std::optional<std::chrono::time_point<std::chrono::steady_clock>> m_ShutdownTime{};
 	std::atomic<bool> m_Shutdown = false;
 
 	// Only to be used with curl_multi_wakeup
@@ -336,7 +335,7 @@ public:
 	bool Init(std::chrono::milliseconds ShutdownDelay);
 
 	// User
-	void Run(std::shared_ptr<IHttpRequest> pRequest) override;
+	virtual void Run(std::shared_ptr<IHttpRequest> pRequest) override;
 	void Shutdown() override;
 	~CHttp();
 };

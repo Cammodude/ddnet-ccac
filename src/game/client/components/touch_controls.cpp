@@ -171,8 +171,8 @@ vec2 CTouchControls::CTouchButton::ClampTouchPosition(vec2 TouchPosition) const
 	{
 	case EButtonShape::RECT:
 	{
-		TouchPosition.x = std::clamp(TouchPosition.x, m_ScreenRect.x, m_ScreenRect.x + m_ScreenRect.w);
-		TouchPosition.y = std::clamp(TouchPosition.y, m_ScreenRect.y, m_ScreenRect.y + m_ScreenRect.h);
+		TouchPosition.x = clamp(TouchPosition.x, m_ScreenRect.x, m_ScreenRect.x + m_ScreenRect.w);
+		TouchPosition.y = clamp(TouchPosition.y, m_ScreenRect.y, m_ScreenRect.y + m_ScreenRect.h);
 		break;
 	}
 	case EButtonShape::CIRCLE:
@@ -347,12 +347,12 @@ void CTouchControls::CTouchButtonBehavior::SetActive(const IInput::CTouchFingerS
 	}
 }
 
-void CTouchControls::CTouchButtonBehavior::SetInactive(bool ByFinger)
+void CTouchControls::CTouchButtonBehavior::SetInactive()
 {
 	if(m_Active)
 	{
 		m_Active = false;
-		OnDeactivate(ByFinger);
+		OnDeactivate();
 	}
 }
 
@@ -381,10 +381,8 @@ CTouchControls::CButtonLabel CTouchControls::CIngameMenuTouchButtonBehavior::Get
 	return {CButtonLabel::EType::ICON, "\xEF\x85\x8E"};
 }
 
-void CTouchControls::CIngameMenuTouchButtonBehavior::OnDeactivate(bool ByFinger)
+void CTouchControls::CIngameMenuTouchButtonBehavior::OnDeactivate()
 {
-	if(!ByFinger)
-		return;
 	m_pTouchControls->GameClient()->m_Menus.SetActive(true);
 }
 
@@ -417,10 +415,8 @@ CTouchControls::CButtonLabel CTouchControls::CExtraMenuTouchButtonBehavior::GetL
 	}
 }
 
-void CTouchControls::CExtraMenuTouchButtonBehavior::OnDeactivate(bool ByFinger)
+void CTouchControls::CExtraMenuTouchButtonBehavior::OnDeactivate()
 {
-	if(!ByFinger)
-		return;
 	if(time_get_nanoseconds() - m_ActivationStartTime >= LONG_TOUCH_DURATION)
 	{
 		m_pTouchControls->GameClient()->m_Menus.SetActive(true);
@@ -445,10 +441,8 @@ CTouchControls::CButtonLabel CTouchControls::CEmoticonTouchButtonBehavior::GetLa
 	return {CButtonLabel::EType::LOCALIZED, Localizable("Emoticon")};
 }
 
-void CTouchControls::CEmoticonTouchButtonBehavior::OnDeactivate(bool ByFinger)
+void CTouchControls::CEmoticonTouchButtonBehavior::OnDeactivate()
 {
-	if(!ByFinger)
-		return;
 	m_pTouchControls->Console()->ExecuteLineStroked(1, "+emote");
 }
 
@@ -458,10 +452,8 @@ CTouchControls::CButtonLabel CTouchControls::CSpectateTouchButtonBehavior::GetLa
 	return {CButtonLabel::EType::LOCALIZED, Localizable("Spectator mode")};
 }
 
-void CTouchControls::CSpectateTouchButtonBehavior::OnDeactivate(bool ByFinger)
+void CTouchControls::CSpectateTouchButtonBehavior::OnDeactivate()
 {
-	if(!ByFinger)
-		return;
 	m_pTouchControls->Console()->ExecuteLineStroked(1, "+spectate");
 }
 
@@ -496,7 +488,7 @@ void CTouchControls::CSwapActionTouchButtonBehavior::OnActivate()
 	}
 }
 
-void CTouchControls::CSwapActionTouchButtonBehavior::OnDeactivate(bool ByFinger)
+void CTouchControls::CSwapActionTouchButtonBehavior::OnDeactivate()
 {
 	if(m_ActiveAction != NUM_ACTIONS)
 	{
@@ -521,7 +513,7 @@ void CTouchControls::CUseActionTouchButtonBehavior::OnActivate()
 	m_pTouchControls->Console()->ExecuteLineStroked(1, ACTION_COMMANDS[m_ActiveAction]);
 }
 
-void CTouchControls::CUseActionTouchButtonBehavior::OnDeactivate(bool ByFinger)
+void CTouchControls::CUseActionTouchButtonBehavior::OnDeactivate()
 {
 	m_pTouchControls->Console()->ExecuteLineStroked(0, ACTION_COMMANDS[m_ActiveAction]);
 	m_ActiveAction = NUM_ACTIONS;
@@ -547,7 +539,7 @@ void CTouchControls::CJoystickTouchButtonBehavior::OnActivate()
 	}
 }
 
-void CTouchControls::CJoystickTouchButtonBehavior::OnDeactivate(bool ByFinger)
+void CTouchControls::CJoystickTouchButtonBehavior::OnDeactivate()
 {
 	if(m_ActiveAction != ACTION_AIM)
 	{
@@ -564,8 +556,8 @@ void CTouchControls::CJoystickTouchButtonBehavior::OnUpdate()
 		vec2 WorldScreenSize;
 		m_pTouchControls->RenderTools()->CalcScreenParams(m_pTouchControls->Graphics()->ScreenAspect(), m_pTouchControls->GameClient()->m_Camera.m_Zoom, &WorldScreenSize.x, &WorldScreenSize.y);
 		Controls.m_aMousePos[g_Config.m_ClDummy] += -m_AccumulatedDelta * WorldScreenSize;
-		Controls.m_aMousePos[g_Config.m_ClDummy].x = std::clamp(Controls.m_aMousePos[g_Config.m_ClDummy].x, -201.0f * 32, (m_pTouchControls->Collision()->GetWidth() + 201.0f) * 32.0f);
-		Controls.m_aMousePos[g_Config.m_ClDummy].y = std::clamp(Controls.m_aMousePos[g_Config.m_ClDummy].y, -201.0f * 32, (m_pTouchControls->Collision()->GetHeight() + 201.0f) * 32.0f);
+		Controls.m_aMousePos[g_Config.m_ClDummy].x = clamp(Controls.m_aMousePos[g_Config.m_ClDummy].x, -201.0f * 32, (m_pTouchControls->Collision()->GetWidth() + 201.0f) * 32.0f);
+		Controls.m_aMousePos[g_Config.m_ClDummy].y = clamp(Controls.m_aMousePos[g_Config.m_ClDummy].y, -201.0f * 32, (m_pTouchControls->Collision()->GetHeight() + 201.0f) * 32.0f);
 		m_AccumulatedDelta = vec2(0.0f, 0.0f);
 	}
 	else
@@ -622,7 +614,7 @@ void CTouchControls::CBindTouchButtonBehavior::OnActivate()
 	m_Repeating = false;
 }
 
-void CTouchControls::CBindTouchButtonBehavior::OnDeactivate(bool ByFinger)
+void CTouchControls::CBindTouchButtonBehavior::OnDeactivate()
 {
 	m_pTouchControls->Console()->ExecuteLineStroked(0, m_Command.c_str());
 }
@@ -871,13 +863,13 @@ int CTouchControls::NextActiveAction(int Action) const
 		return ACTION_FIRE;
 	default:
 		dbg_assert(false, "Action invalid for NextActiveAction");
-		dbg_break();
+		return NUM_ACTIONS;
 	}
 }
 
 int CTouchControls::NextDirectTouchAction() const
 {
-	if(GameClient()->m_Snap.m_SpecInfo.m_Active)
+	if(m_pClient->m_Snap.m_SpecInfo.m_Active)
 	{
 		switch(m_DirectTouchSpectate)
 		{
@@ -923,26 +915,6 @@ void CTouchControls::UpdateButtons(const std::vector<IInput::CTouchFingerState> 
 	const vec2 ScreenSize = CalculateScreenSize();
 
 	std::vector<IInput::CTouchFingerState> vRemainingTouchFingerStates = vTouchFingerStates;
-
-	if(!m_vStaleFingers.empty())
-	{
-		// Remove stale fingers that are not pressed anymore.
-		m_vStaleFingers.erase(
-			std::remove_if(m_vStaleFingers.begin(), m_vStaleFingers.end(), [&](const IInput::CTouchFinger &Finger) {
-				return std::find_if(vRemainingTouchFingerStates.begin(), vRemainingTouchFingerStates.end(), [&](const IInput::CTouchFingerState &TouchFingerState) {
-					return TouchFingerState.m_Finger == Finger;
-				}) == vRemainingTouchFingerStates.end();
-			}),
-			m_vStaleFingers.end());
-		// Prevent stale fingers from activating touch buttons and direct touch.
-		vRemainingTouchFingerStates.erase(
-			std::remove_if(vRemainingTouchFingerStates.begin(), vRemainingTouchFingerStates.end(), [&](const IInput::CTouchFingerState &TouchFingerState) {
-				return std::find_if(m_vStaleFingers.begin(), m_vStaleFingers.end(), [&](const IInput::CTouchFinger &Finger) {
-					return TouchFingerState.m_Finger == Finger;
-				}) != m_vStaleFingers.end();
-			}),
-			vRemainingTouchFingerStates.end());
-	}
 
 	// Remove remaining finger states for fingers which are responsible for active actions
 	// and release action when the finger responsible for it is not pressed down anymore.
@@ -1013,7 +985,7 @@ void CTouchControls::UpdateButtons(const std::vector<IInput::CTouchFingerState> 
 		});
 		if(PrevActiveTouchButton != m_vTouchButtons.end())
 		{
-			PrevActiveTouchButton->m_pBehavior->SetInactive(true);
+			PrevActiveTouchButton->m_pBehavior->SetInactive();
 		}
 		TouchButton.m_pBehavior->SetActive(*FingerInsideButton);
 	}
@@ -1024,19 +996,7 @@ void CTouchControls::UpdateButtons(const std::vector<IInput::CTouchFingerState> 
 	{
 		if(!TouchButton.IsVisible())
 		{
-			if(TouchButton.m_pBehavior->IsActive())
-			{
-				// Remember fingers responsible for buttons that were deactivated due to becoming invisible,
-				// to ensure that these fingers will not activate direct touch input or touch buttons.
-				m_vStaleFingers.push_back(TouchButton.m_pBehavior->m_Finger);
-				const auto ActiveFinger = std::find_if(vRemainingTouchFingerStates.begin(), vRemainingTouchFingerStates.end(), [&](const IInput::CTouchFingerState &TouchFingerState) {
-					return TouchFingerState.m_Finger == TouchButton.m_pBehavior->m_Finger;
-				});
-				// ActiveFinger could be released during this progress.
-				if(ActiveFinger != vRemainingTouchFingerStates.end())
-					vRemainingTouchFingerStates.erase(ActiveFinger);
-			}
-			TouchButton.m_pBehavior->SetInactive(false);
+			TouchButton.m_pBehavior->SetInactive();
 			continue;
 		}
 		if(!TouchButton.m_pBehavior->IsActive())
@@ -1048,7 +1008,7 @@ void CTouchControls::UpdateButtons(const std::vector<IInput::CTouchFingerState> 
 		});
 		if(ActiveFinger == vRemainingTouchFingerStates.end())
 		{
-			TouchButton.m_pBehavior->SetInactive(true);
+			TouchButton.m_pBehavior->SetInactive();
 		}
 		else
 		{
@@ -1089,15 +1049,15 @@ void CTouchControls::UpdateButtons(const std::vector<IInput::CTouchFingerState> 
 	// Update mouse position based on the finger responsible for the last active action.
 	if(GotDirectFingerState)
 	{
-		const float Zoom = GameClient()->m_Snap.m_SpecInfo.m_Active ? GameClient()->m_Camera.m_Zoom : 1.0f;
+		const float Zoom = m_pClient->m_Snap.m_SpecInfo.m_Active ? m_pClient->m_Camera.m_Zoom : 1.0f;
 		vec2 WorldScreenSize;
 		RenderTools()->CalcScreenParams(Graphics()->ScreenAspect(), Zoom, &WorldScreenSize.x, &WorldScreenSize.y);
 		CControls &Controls = GameClient()->m_Controls;
-		if(GameClient()->m_Snap.m_SpecInfo.m_Active)
+		if(m_pClient->m_Snap.m_SpecInfo.m_Active)
 		{
 			Controls.m_aMousePos[g_Config.m_ClDummy] += -DirectFingerState.m_Delta * WorldScreenSize;
-			Controls.m_aMousePos[g_Config.m_ClDummy].x = std::clamp(Controls.m_aMousePos[g_Config.m_ClDummy].x, -201.0f * 32, (Collision()->GetWidth() + 201.0f) * 32.0f);
-			Controls.m_aMousePos[g_Config.m_ClDummy].y = std::clamp(Controls.m_aMousePos[g_Config.m_ClDummy].y, -201.0f * 32, (Collision()->GetHeight() + 201.0f) * 32.0f);
+			Controls.m_aMousePos[g_Config.m_ClDummy].x = clamp(Controls.m_aMousePos[g_Config.m_ClDummy].x, -201.0f * 32, (Collision()->GetWidth() + 201.0f) * 32.0f);
+			Controls.m_aMousePos[g_Config.m_ClDummy].y = clamp(Controls.m_aMousePos[g_Config.m_ClDummy].y, -201.0f * 32, (Collision()->GetHeight() + 201.0f) * 32.0f);
 		}
 		else
 		{
@@ -1378,7 +1338,6 @@ std::optional<CTouchControls::CTouchButton> CTouchControls::ParseButton(const js
 		return {};
 	}
 	std::vector<CButtonVisibility> vParsedVisibilities;
-	vParsedVisibilities.reserve(Visibilities.u.array.length);
 	for(unsigned VisibilityIndex = 0; VisibilityIndex < Visibilities.u.array.length; ++VisibilityIndex)
 	{
 		const json_value &Visibility = Visibilities[VisibilityIndex];

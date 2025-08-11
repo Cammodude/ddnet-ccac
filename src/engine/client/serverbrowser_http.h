@@ -10,12 +10,11 @@ class IHttp;
 class IServerBrowserHttp
 {
 public:
-	virtual ~IServerBrowserHttp() = default;
+	virtual ~IServerBrowserHttp() {}
 
 	virtual void Update() = 0;
 
-	virtual bool IsRefreshing() const = 0;
-	virtual bool IsError() const = 0;
+	virtual bool IsRefreshing() = 0;
 	virtual void Refresh() = 0;
 
 	virtual bool GetBestUrl(const char **pBestUrl) const = 0;

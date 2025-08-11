@@ -84,16 +84,15 @@ protected:
 
 private:
 	ICommandProcessor *m_pProcessor;
-	std::atomic_bool m_Shutdown;
-#if !defined(CONF_PLATFORM_EMSCRIPTEN)
 	std::mutex m_BufferSwapMutex;
 	std::condition_variable m_BufferSwapCond;
 	CCommandBuffer *m_pBuffer;
+	std::atomic_bool m_Shutdown;
 	bool m_Started = false;
 	std::atomic_bool m_BufferInProcess;
 	void *m_pThread;
+
 	static void ThreadFunc(void *pUser);
-#endif
 
 public:
 	bool GetWarning(std::vector<std::string> &WarningStrings) override;
@@ -102,6 +101,7 @@ public:
 // takes care of implementation independent operations
 class CCommandProcessorFragment_General
 {
+	void Cmd_Nop();
 	void Cmd_Signal(const CCommandBuffer::SCommand_Signal *pCommand);
 
 public:
@@ -245,8 +245,8 @@ public:
 	int GetNumScreens() const override { return m_NumScreens; }
 	const char *GetScreenName(int Screen) const override;
 
-	void GetVideoModes(CVideoMode *pModes, int MaxModes, int *pNumModes, float HiDPIScale, int MaxWindowWidth, int MaxWindowHeight, int ScreenId) override;
-	void GetCurrentVideoMode(CVideoMode &CurMode, float HiDPIScale, int MaxWindowWidth, int MaxWindowHeight, int ScreenId) override;
+	void GetVideoModes(CVideoMode *pModes, int MaxModes, int *pNumModes, int HiDPIScale, int MaxWindowWidth, int MaxWindowHeight, int ScreenId) override;
+	void GetCurrentVideoMode(CVideoMode &CurMode, int HiDPIScale, int MaxWindowWidth, int MaxWindowHeight, int ScreenId) override;
 
 	void Minimize() override;
 	void Maximize() override;
@@ -260,7 +260,6 @@ public:
 	bool ResizeWindow(int w, int h, int RefreshRate) override;
 	void GetViewportSize(int &w, int &h) override;
 	void NotifyWindow() override;
-	bool IsScreenKeyboardShown() override;
 
 	void WindowDestroyNtf(uint32_t WindowId) override;
 	void WindowCreateNtf(uint32_t WindowId) override;
@@ -300,7 +299,7 @@ public:
 
 	TGLBackendReadPresentedImageData &GetReadPresentedImageDataFuncUnsafe() override;
 
-	std::optional<int> ShowMessageBox(const IGraphics::CMessageBox &MessageBox) override;
+	bool ShowMessageBox(unsigned Type, const char *pTitle, const char *pMsg) override;
 
 	static bool IsModernAPI(EBackendType BackendType);
 };

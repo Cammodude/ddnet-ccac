@@ -771,6 +771,9 @@ Show HUD
 may cause delay
 == може проузроковати кашњење
 
+Use high DPI
+== Користи високи DPI
+
 Enable game sounds
 == Користи звукове игре
 
@@ -884,6 +887,9 @@ AntiPing: predict grenade paths
 
 Show other players' hook collision lines
 == Прикажи линију судара куке других играча
+
+Show other players' key presses
+== Прикажи притиске тастера других играча
 
 Show tiles layers from BG map
 == Прикажи слојеве плочица са BG мапе
@@ -1269,6 +1275,9 @@ Use old chat style
 Preview
 == Преглед
 
+Show local player's key presses
+== Прикажи своје акције
+
 Hook collision line
 == Додир куке
 
@@ -1353,16 +1362,12 @@ Team %d
 Loading sound files
 == Учитавам звучне фајлове
 
-[Translation credits: Add your own name here when you update translations]
-English translation by the DDNet Team
-== Serbian Cyrillic translation by Veljko Radovanovic (VekiPro)
-
 [Graphics error]
 Failed during initialization. Try to change gfx_backend to OpenGL or Vulkan in settings_ddnet.cfg in the config directory and try again.
 == 
 
 [Graphics error]
-Out of VRAM. Try setting 'cl_skins_loaded_max' to a lower value or remove custom assets (skins, entities, etc.), especially those with high resolution.
+Out of VRAM. Try removing custom assets (skins, entities, etc.), especially those with high resolution.
 == 
 
 [Graphics error]
@@ -1417,9 +1422,6 @@ Saving settings to '%s' failed
 Error saving settings
 == 
 
-No demo with this filename exists
-== 
-
 "%s" is not compatible with pnglite and cannot be loaded by old DDNet versions:
 == 
 
@@ -1436,6 +1438,9 @@ Quitting. Please wait…
 == 
 
 Restarting. Please wait…
+== 
+
+Loading background map
 == 
 
 Auto-sync player camera
@@ -1498,10 +1503,6 @@ Multi-View
 == 
 
 [Spectating]
-Following %d: %s
-== 
-
-[Spectating]
 Following %s
 == 
 
@@ -1510,9 +1511,6 @@ AUTO
 == 
 
 Some map images could not be loaded. Check the local console for details.
-== 
-
-Loading map
 == 
 
 Some map sounds could not be loaded. Check the local console for details.
@@ -1548,9 +1546,6 @@ There's an unsaved map in the editor, you might want to save it.
 Continue anyway?
 == 
 
-This name cannot be used for files and folders
-== 
-
 A demo with this name already exists
 == 
 
@@ -1572,19 +1567,10 @@ Videos directory
 Video was saved to '%s'
 == 
 
-Cancel
-== 
-
-Error checking player name
-== 
-
-Could not check for existing player with your name. Check your internet connection.
+Unable to save the skin
 == 
 
 Unable to save the skin with a reserved name
-== 
-
-Unable to save the skin
 == 
 
 %d/%d KiB (%.1f KiB/s)
@@ -1661,11 +1647,11 @@ Go back the specified duration
 == 
 
 [Demo player duration]
-%s min.
+%d min.
 == 
 
 [Demo player duration]
-%s sec.
+%d sec.
 == 
 
 Change the skip duration
@@ -1738,9 +1724,6 @@ Created
 == 
 
 Netversion
-== 
-
-Map size
 == 
 
 [Demo details]
@@ -1921,19 +1904,7 @@ Open the directory to add custom themes
 Player info change cooldown
 == 
 
-This skin name cannot be used.
-== 
-
-Skin could not be loaded due to an error. Check the local console for details.
-== 
-
-Skin could not be found.
-== 
-
 Create a random skin
-== 
-
-No skins match your filter criteria
 == 
 
 Open the directory to add custom skins
@@ -1951,6 +1922,9 @@ Reset controls
 Are you sure that you want to reset the controls to their defaults?
 == 
 
+Cancel
+== 
+
 Show FPS
 == 
 
@@ -1959,6 +1933,10 @@ Renders your frame rate in the top right
 
 Graphics card
 == 
+
+[Translation credits: Add your own name here when you update translations]
+English translation by the DDNet Team
+== Serbian Cyrillic translation by Veljko Radovanovic (VekiPro)
 
 Tee
 == 
@@ -1981,9 +1959,6 @@ Same clan color in scoreboard
 Show client IDs (scoreboard, chat, spectator)
 == 
 
-Show number of spectators
-== 
-
 Always show chat
 == 
 
@@ -1996,35 +1971,10 @@ Chat font size
 Chat width
 == 
 
-[Show name plates]
-None
-== 
-
-[Show name plates]
-Own
-== 
-
-[Show name plates]
-Others
-== 
-
-[Show name plates]
-All
-== 
-
-Name plates offset
-== 
-
-Show friend icon in name plates
+Show friend mark (♥) in name plates
 == 
 
 Show client IDs in name plates
-== 
-
-Show client IDs on a seperate line
-== 
-
-Client IDs size
 == 
 
 Hook Strength
@@ -2042,32 +1992,7 @@ Size of hook strength icon and number indicator
 Key Presses
 == 
 
-Show players' key presses
-== 
-
-[Show players' key presses]
-None
-== 
-
-[Show players' key presses]
-Own
-== 
-
-[Show players' key presses]
-Others
-== 
-
-[Show players' key presses]
-All
-== 
-
 Size of key press icons
-== 
-
-Preview player's name plate
-== 
-
-Preview dummy's name plate
 == 
 
 Show own player's hook collision line
@@ -2118,12 +2043,6 @@ Freeze Laser Outline Color
 Freeze Laser Inner Color
 == 
 
-Dragger Outline Color
-== 
-
-Dragger Inner Color
-== 
-
 Set all to Rifle
 == 
 
@@ -2131,9 +2050,6 @@ Enable ghost
 == 
 
 Only save improvements
-== 
-
-AntiPing: prediction margin
 == 
 
 Regular background color

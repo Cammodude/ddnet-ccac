@@ -31,7 +31,7 @@ public:
 	void *FindItem(int Type, int Id) override;
 	int NumItems() const override;
 
-	[[nodiscard]] bool Load(const char *pMapName) override;
+	bool Load(const char *pMapName) override;
 	void Unload() override;
 	bool IsLoaded() const override;
 	IOHANDLE File() const override;

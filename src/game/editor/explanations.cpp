@@ -1,78 +1,9 @@
-#include "explanations.h"
-
-#include <base/system.h>
-
-#include <game/mapitems.h>
+#include "editor.h"
 
 // DDNet entity explanations by Lady Saavik
 // TODO: Add other entities' tiles' explanations and improve new ones
 
-// Tile Numbers For Explanations - TODO: Add/Improve tiles and explanations
-enum
-{
-	TILE_PUB_AIR = 0,
-	TILE_PUB_HOOKABLE = 1,
-	TILE_PUB_DEATH = 2,
-	TILE_PUB_UNHOOKABLE = 3,
-
-	TILE_PUB_CREDITS1 = 140,
-	TILE_PUB_CREDITS2 = 141,
-	TILE_PUB_CREDITS3 = 142,
-	TILE_PUB_CREDITS4 = 143,
-	TILE_PUB_CREDITS5 = 156,
-	TILE_PUB_CREDITS6 = 157,
-	TILE_PUB_CREDITS7 = 158,
-	TILE_PUB_CREDITS8 = 159,
-
-	TILE_PUB_ENTITIES_OFF1 = 190,
-	TILE_PUB_ENTITIES_OFF2 = 191,
-};
-
-enum
-{
-	TILE_FNG_SPIKE_GOLD = 7,
-	TILE_FNG_SPIKE_NORMAL = 8,
-	TILE_FNG_SPIKE_RED = 9,
-	TILE_FNG_SPIKE_BLUE = 10,
-	TILE_FNG_SCORE_RED = 11,
-	TILE_FNG_SCORE_BLUE = 12,
-
-	TILE_FNG_SPIKE_GREEN = 14,
-	TILE_FNG_SPIKE_PURPLE = 15,
-
-	TILE_FNG_SPAWN = 192,
-	TILE_FNG_SPAWN_RED = 193,
-	TILE_FNG_SPAWN_BLUE = 194,
-	TILE_FNG_FLAG_RED = 195,
-	TILE_FNG_FLAG_BLUE = 196,
-	TILE_FNG_SHIELD = 197,
-	TILE_FNG_HEART = 198,
-	TILE_FNG_SHOTGUN = 199,
-	TILE_FNG_GRENADE = 200,
-	TILE_FNG_NINJA = 201,
-	TILE_FNG_LASER = 202,
-
-	TILE_FNG_SPIKE_OLD1 = 208,
-	TILE_FNG_SPIKE_OLD2 = 209,
-	TILE_FNG_SPIKE_OLD3 = 210,
-};
-
-enum
-{
-	TILE_VANILLA_SPAWN = 192,
-	TILE_VANILLA_SPAWN_RED = 193,
-	TILE_VANILLA_SPAWN_BLUE = 194,
-	TILE_VANILLA_FLAG_RED = 195,
-	TILE_VANILLA_FLAG_BLUE = 196,
-	TILE_VANILLA_SHIELD = 197,
-	TILE_VANILLA_HEART = 198,
-	TILE_VANILLA_SHOTGUN = 199,
-	TILE_VANILLA_GRENADE = 200,
-	TILE_VANILLA_NINJA = 201,
-	TILE_VANILLA_LASER = 202,
-};
-
-const char *CExplanations::ExplainDDNet(int Tile, int Layer)
+const char *CEditor::ExplainDDNet(int Tile, int Layer)
 {
 	switch(Tile)
 	{
@@ -559,7 +490,7 @@ const char *CExplanations::ExplainDDNet(int Tile, int Layer)
 	return nullptr;
 }
 
-const char *CExplanations::ExplainFNG(int Tile, int Layer)
+const char *CEditor::ExplainFNG(int Tile, int Layer)
 {
 	switch(Tile)
 	{
@@ -667,7 +598,7 @@ const char *CExplanations::ExplainFNG(int Tile, int Layer)
 	return nullptr;
 }
 
-const char *CExplanations::ExplainVanilla(int Tile, int Layer)
+const char *CEditor::ExplainVanilla(int Tile, int Layer)
 {
 	switch(Tile)
 	{
@@ -737,23 +668,23 @@ const char *CExplanations::ExplainVanilla(int Tile, int Layer)
 	return nullptr;
 }
 
-const char *CExplanations::Explain(EGametype Gametype, int Tile, int Layer)
+const char *CEditor::Explain(EExplanation Explanation, int Tile, int Layer)
 {
-	switch(Gametype)
+	switch(Explanation)
 	{
-	case EGametype::NONE:
+	case EExplanation::NONE:
 		return nullptr;
-	case EGametype::DDNET:
+	case EExplanation::DDNET:
 		return ExplainDDNet(Tile, Layer);
-	case EGametype::FNG:
+	case EExplanation::FNG:
 		return ExplainFNG(Tile, Layer);
-	case EGametype::RACE:
+	case EExplanation::RACE:
 		return nullptr; // TODO: Explanations for Race
-	case EGametype::VANILLA:
+	case EExplanation::VANILLA:
 		return ExplainVanilla(Tile, Layer);
-	case EGametype::BLOCKWORLDS:
+	case EExplanation::BLOCKWORLDS:
 		return nullptr; // TODO: Explanations for Blockworlds
 	}
-	dbg_assert(false, "Gametype invalid: %d", (int)Gametype);
-	dbg_break();
+	dbg_assert(false, "logic error");
+	return nullptr;
 }

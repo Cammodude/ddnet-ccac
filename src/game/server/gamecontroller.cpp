@@ -104,15 +104,8 @@ float IGameController::EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos, int DDTeam)
 
 void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type, int DDTeam)
 {
-	const bool PlayerCollision = GameServer()->m_World.m_Core.m_aTuning[0].m_PlayerCollision;
-
-	// make sure players keep spawning at the same tile
-	// on race maps no matter what
-	if(!PlayerCollision && pEval->m_Got)
-		return;
-
 	// j == 0: Find an empty slot, j == 1: Take any slot if no empty one found
-	for(int j = 0; j < 2; j++)
+	for(int j = 0; j < 2 && !pEval->m_Got; j++)
 	{
 		// get spawn point
 		for(const vec2 &SpawnPoint : m_avSpawnPoints[Type])
@@ -128,7 +121,7 @@ void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type, int DDTeam)
 				for(int Index = 0; Index < 5 && Result == -1; ++Index)
 				{
 					Result = Index;
-					if(!PlayerCollision)
+					if(!GameServer()->m_World.m_Core.m_aTuning[0].m_PlayerCollision)
 						break;
 					for(int c = 0; c < Num; ++c)
 					{
@@ -383,8 +376,7 @@ bool IGameController::OnEntity(int Index, int x, int y, int Layer, int Flags, bo
 
 	if(Type != -1) // NOLINT(clang-analyzer-unix.Malloc)
 	{
-		int PickupFlags = TileFlagsToPickupFlags(Flags);
-		CPickup *pPickup = new CPickup(&GameServer()->m_World, Type, SubType, Layer, Number, PickupFlags);
+		CPickup *pPickup = new CPickup(&GameServer()->m_World, Type, SubType, Layer, Number);
 		pPickup->m_Pos = Pos;
 		return true; // NOLINT(clang-analyzer-unix.Malloc)
 	}
@@ -588,15 +580,15 @@ void IGameController::Snap(int SnappingClient)
 
 	if(pPlayer && (pPlayer->m_TimerType == CPlayer::TIMERTYPE_GAMETIMER || pPlayer->m_TimerType == CPlayer::TIMERTYPE_GAMETIMER_AND_BROADCAST) && pPlayer->GetClientVersion() >= VERSION_DDNET_GAMETICK)
 	{
-		if((pPlayer->GetTeam() == TEAM_SPECTATORS || pPlayer->IsPaused()) && pPlayer->SpectatorId() != SPEC_FREEVIEW && (pPlayer2 = GameServer()->m_apPlayers[pPlayer->SpectatorId()]))
+		if((pPlayer->GetTeam() == TEAM_SPECTATORS || pPlayer->IsPaused()) && pPlayer->m_SpectatorId != SPEC_FREEVIEW && (pPlayer2 = GameServer()->m_apPlayers[pPlayer->m_SpectatorId]))
 		{
-			if((pChr = pPlayer2->GetCharacter()) && pChr->m_DDRaceState == ERaceState::STARTED)
+			if((pChr = pPlayer2->GetCharacter()) && pChr->m_DDRaceState == DDRACE_STARTED)
 			{
 				pGameInfoObj->m_WarmupTimer = -pChr->m_StartTime;
 				pGameInfoObj->m_GameStateFlags |= GAMESTATEFLAG_RACETIME;
 			}
 		}
-		else if((pChr = pPlayer->GetCharacter()) && pChr->m_DDRaceState == ERaceState::STARTED)
+		else if((pChr = pPlayer->GetCharacter()) && pChr->m_DDRaceState == DDRACE_STARTED)
 		{
 			pGameInfoObj->m_WarmupTimer = -pChr->m_StartTime;
 			pGameInfoObj->m_GameStateFlags |= GAMESTATEFLAG_RACETIME;
@@ -661,6 +653,16 @@ void IGameController::Snap(int SnappingClient)
 
 int IGameController::GetAutoTeam(int NotThisId)
 {
+	int aNumplayers[2] = {0, 0};
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		if(GameServer()->m_apPlayers[i] && i != NotThisId)
+		{
+			if(GameServer()->m_apPlayers[i]->GetTeam() >= TEAM_RED && GameServer()->m_apPlayers[i]->GetTeam() <= TEAM_BLUE)
+				aNumplayers[GameServer()->m_apPlayers[i]->GetTeam()]++;
+		}
+	}
+
 	int Team = 0;
 
 	if(CanJoinTeam(Team, NotThisId, nullptr, 0))
@@ -734,16 +736,4 @@ void IGameController::DoTeamChange(CPlayer *pPlayer, int Team, bool DoChatMsg)
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 
 	// OnPlayerInfoChange(pPlayer);
-}
-
-int IGameController::TileFlagsToPickupFlags(int TileFlags) const
-{
-	int PickupFlags = 0;
-	if(TileFlags & TILEFLAG_XFLIP)
-		PickupFlags |= PICKUPFLAG_XFLIP;
-	if(TileFlags & TILEFLAG_YFLIP)
-		PickupFlags |= PICKUPFLAG_YFLIP;
-	if(TileFlags & TILEFLAG_ROTATE)
-		PickupFlags |= PICKUPFLAG_ROTATE;
-	return PickupFlags;
 }

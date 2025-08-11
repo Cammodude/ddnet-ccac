@@ -8,9 +8,7 @@
 
 TEST(Datafile, ExtendedType)
 {
-	std::unique_ptr<IStorage> pStorage = CreateLocalStorage();
-	ASSERT_NE(pStorage, nullptr) << "Error creating local storage";
-
+	auto pStorage = std::unique_ptr<IStorage>(CreateLocalStorage());
 	CTestInfo Info;
 
 	CMapItemTest ItemTest;
@@ -22,7 +20,7 @@ TEST(Datafile, ExtendedType)
 
 	{
 		CDataFileWriter Writer;
-		ASSERT_TRUE(Writer.Open(pStorage.get(), Info.m_aFilename));
+		Writer.Open(pStorage.get(), Info.m_aFilename);
 
 		Writer.AddItem(MAPITEMTYPE_TEST, 0x8000, sizeof(ItemTest), &ItemTest);
 
@@ -31,7 +29,7 @@ TEST(Datafile, ExtendedType)
 
 	{
 		CDataFileReader Reader;
-		ASSERT_TRUE(Reader.Open(pStorage.get(), Info.m_aFilename, IStorage::TYPE_ALL));
+		Reader.Open(pStorage.get(), Info.m_aFilename, IStorage::TYPE_ALL);
 
 		int Start, Num;
 		Reader.GetType(MAPITEMTYPE_TEST, &Start, &Num);
@@ -65,14 +63,12 @@ TEST(Datafile, ExtendedType)
 
 TEST(Datafile, StringData)
 {
-	std::unique_ptr<IStorage> pStorage = CreateLocalStorage();
-	ASSERT_NE(pStorage, nullptr) << "Error creating local storage";
-
+	auto pStorage = std::unique_ptr<IStorage>(CreateLocalStorage());
 	CTestInfo Info;
 
 	{
 		CDataFileWriter Writer;
-		ASSERT_TRUE(Writer.Open(pStorage.get(), Info.m_aFilename));
+		Writer.Open(pStorage.get(), Info.m_aFilename);
 
 		EXPECT_EQ(Writer.AddDataString(""), -1); // Empty string is not added
 		EXPECT_EQ(Writer.AddDataString("Abc"), 0);
@@ -88,7 +84,7 @@ TEST(Datafile, StringData)
 
 	{
 		CDataFileReader Reader;
-		ASSERT_TRUE(Reader.Open(pStorage.get(), Info.m_aFilename, IStorage::TYPE_ALL));
+		Reader.Open(pStorage.get(), Info.m_aFilename, IStorage::TYPE_ALL);
 
 		EXPECT_EQ(Reader.GetDataString(-1000), nullptr);
 		EXPECT_STREQ(Reader.GetDataString(-1), "");

@@ -32,9 +32,19 @@
 #undef KeyPress // Undo pollution from X11/Xlib.h included by SDL_syswm.h on Linux
 #endif
 
+static void AssertKeyValid(int Key)
+{
+	if(Key < KEY_FIRST || Key >= KEY_LAST)
+	{
+		char aError[32];
+		str_format(aError, sizeof(aError), "Key invalid: %d", Key);
+		dbg_assert(false, aError);
+	}
+}
+
 void CInput::AddKeyEvent(int Key, int Flags)
 {
-	dbg_assert(Key >= KEY_FIRST && Key < KEY_LAST, "Key invalid: %d", Key);
+	AssertKeyValid(Key);
 	dbg_assert((Flags & (FLAG_PRESS | FLAG_RELEASE)) != 0 && (Flags & ~(FLAG_PRESS | FLAG_RELEASE)) == 0, "Flags invalid");
 
 	CEvent Event;
@@ -209,26 +219,26 @@ float CInput::CJoystick::GetAxisValue(int Axis)
 	return (SDL_JoystickGetAxis(m_pDelegate, Axis) - SDL_JOYSTICK_AXIS_MIN) / (float)(SDL_JOYSTICK_AXIS_MAX - SDL_JOYSTICK_AXIS_MIN) * 2.0f - 1.0f;
 }
 
-void CInput::CJoystick::GetJoystickHatKeys(int Hat, int HatValue, int (&aHatKeys)[2])
+void CInput::CJoystick::GetJoystickHatKeys(int Hat, int HatValue, int (&HatKeys)[2])
 {
 	if(HatValue & SDL_HAT_UP)
-		aHatKeys[0] = KEY_JOY_HAT0_UP + Hat * NUM_JOYSTICK_BUTTONS_PER_HAT;
+		HatKeys[0] = KEY_JOY_HAT0_UP + Hat * NUM_JOYSTICK_BUTTONS_PER_HAT;
 	else if(HatValue & SDL_HAT_DOWN)
-		aHatKeys[0] = KEY_JOY_HAT0_DOWN + Hat * NUM_JOYSTICK_BUTTONS_PER_HAT;
+		HatKeys[0] = KEY_JOY_HAT0_DOWN + Hat * NUM_JOYSTICK_BUTTONS_PER_HAT;
 	else
-		aHatKeys[0] = KEY_UNKNOWN;
+		HatKeys[0] = KEY_UNKNOWN;
 
 	if(HatValue & SDL_HAT_LEFT)
-		aHatKeys[1] = KEY_JOY_HAT0_LEFT + Hat * NUM_JOYSTICK_BUTTONS_PER_HAT;
+		HatKeys[1] = KEY_JOY_HAT0_LEFT + Hat * NUM_JOYSTICK_BUTTONS_PER_HAT;
 	else if(HatValue & SDL_HAT_RIGHT)
-		aHatKeys[1] = KEY_JOY_HAT0_RIGHT + Hat * NUM_JOYSTICK_BUTTONS_PER_HAT;
+		HatKeys[1] = KEY_JOY_HAT0_RIGHT + Hat * NUM_JOYSTICK_BUTTONS_PER_HAT;
 	else
-		aHatKeys[1] = KEY_UNKNOWN;
+		HatKeys[1] = KEY_UNKNOWN;
 }
 
-void CInput::CJoystick::GetHatValue(int Hat, int (&aHatKeys)[2])
+void CInput::CJoystick::GetHatValue(int Hat, int (&HatKeys)[2])
 {
-	GetJoystickHatKeys(Hat, SDL_JoystickGetHat(m_pDelegate, Hat), aHatKeys);
+	GetJoystickHatKeys(Hat, SDL_JoystickGetHat(m_pDelegate, Hat), HatKeys);
 }
 
 bool CInput::CJoystick::Relative(float *pX, float *pY)
@@ -350,17 +360,6 @@ void CInput::StopTextInput()
 	m_vCandidates.clear();
 }
 
-void CInput::EnsureScreenKeyboardShown()
-{
-	if(!SDL_HasScreenKeyboardSupport() ||
-		Graphics()->IsScreenKeyboardShown())
-	{
-		return;
-	}
-	SDL_StopTextInput();
-	SDL_StartTextInput();
-}
-
 void CInput::ConsumeEvents(std::function<void(const CEvent &Event)> Consumer) const
 {
 	for(const CEvent &Event : m_vInputEvents)
@@ -387,19 +386,19 @@ float CInput::GetUpdateTime() const
 
 bool CInput::KeyIsPressed(int Key) const
 {
-	dbg_assert(Key >= KEY_FIRST && Key < KEY_LAST, "Key invalid: %d", Key);
+	AssertKeyValid(Key);
 	return m_aCurrentKeyStates[Key];
 }
 
 bool CInput::KeyPress(int Key) const
 {
-	dbg_assert(Key >= KEY_FIRST && Key < KEY_LAST, "Key invalid: %d", Key);
+	AssertKeyValid(Key);
 	return m_aFrameKeyStates[Key];
 }
 
 const char *CInput::KeyName(int Key) const
 {
-	dbg_assert(Key >= KEY_FIRST && Key < KEY_LAST, "Key invalid: %d", Key);
+	AssertKeyValid(Key);
 	return g_aaKeyStrings[Key];
 }
 
@@ -488,18 +487,18 @@ void CInput::HandleJoystickHatMotionEvent(const SDL_JoyHatEvent &Event)
 	if(Event.hat >= NUM_JOYSTICK_HATS)
 		return;
 
-	int aHatKeys[2];
-	CJoystick::GetJoystickHatKeys(Event.hat, Event.value, aHatKeys);
+	int HatKeys[2];
+	CJoystick::GetJoystickHatKeys(Event.hat, Event.value, HatKeys);
 
-	for(int Key = KEY_JOY_HAT0_UP + Event.hat * NUM_JOYSTICK_BUTTONS_PER_HAT; Key <= KEY_JOY_HAT0_RIGHT + Event.hat * NUM_JOYSTICK_BUTTONS_PER_HAT; Key++)
+	for(int Key = KEY_JOY_HAT0_UP + Event.hat * NUM_JOYSTICK_BUTTONS_PER_HAT; Key <= KEY_JOY_HAT0_DOWN + Event.hat * NUM_JOYSTICK_BUTTONS_PER_HAT; Key++)
 	{
-		if(Key != aHatKeys[0] && Key != aHatKeys[1] && m_aCurrentKeyStates[Key])
+		if(Key != HatKeys[0] && Key != HatKeys[1] && m_aCurrentKeyStates[Key])
 		{
 			AddKeyEvent(Key, IInput::FLAG_RELEASE);
 		}
 	}
 
-	for(int CurrentKey : aHatKeys)
+	for(int CurrentKey : HatKeys)
 	{
 		if(CurrentKey != KEY_UNKNOWN && !m_aCurrentKeyStates[CurrentKey])
 		{
@@ -699,7 +698,7 @@ int CInput::Update()
 	bool IgnoreKeys = false;
 
 	const auto &&AddKeyEventChecked = [&](int Key, int Flags) {
-		if(Key != KEY_UNKNOWN && !IgnoreKeys && (!(Flags & IInput::FLAG_PRESS) || !HasComposition()))
+		if(Key != KEY_UNKNOWN && !IgnoreKeys && !HasComposition())
 		{
 			AddKeyEvent(Key, Flags);
 		}
@@ -809,7 +808,6 @@ int CInput::Update()
 				IgnoreKeys = true;
 				break;
 			case SDL_WINDOWEVENT_FOCUS_LOST:
-				std::fill(std::begin(m_aCurrentKeyStates), std::end(m_aCurrentKeyStates), false);
 				m_MouseFocus = false;
 				IgnoreKeys = true;
 				if(m_InputGrabbed)
@@ -875,11 +873,10 @@ void CInput::ProcessSystemMessage(SDL_SysWMmsg *pMsg)
 			m_vCandidates.clear();
 			if(pCandidateList && Size > 0)
 			{
-				m_vCandidates.reserve(std::min(pCandidateList->dwCount - pCandidateList->dwPageStart, pCandidateList->dwPageSize));
 				for(DWORD i = pCandidateList->dwPageStart; i < pCandidateList->dwCount && (int)m_vCandidates.size() < (int)pCandidateList->dwPageSize; i++)
 				{
 					LPCWSTR pCandidate = (LPCWSTR)((DWORD_PTR)pCandidateList + pCandidateList->dwOffset[i]);
-					m_vCandidates.push_back(windows_wide_to_utf8(pCandidate).value_or("<invalid candidate>"));
+					m_vCandidates.push_back(std::move(windows_wide_to_utf8(pCandidate).value_or("<invalid candidate>")));
 				}
 				m_CandidateSelectedIndex = pCandidateList->dwSelection - pCandidateList->dwPageStart;
 			}

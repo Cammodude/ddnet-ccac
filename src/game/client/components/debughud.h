@@ -15,15 +15,15 @@ class CDebugHud : public CComponent
 	CGraph m_RampGraph;
 	CGraph m_ZoomedInGraph;
 	float m_SpeedTurningPoint;
-	float m_MiddleOfZoomedInGraph;
+	float MiddleOfZoomedInGraph;
 	float m_OldVelrampStart;
 	float m_OldVelrampRange;
 	float m_OldVelrampCurvature;
 
 public:
 	CDebugHud();
-	int Sizeof() const override { return sizeof(*this); }
-	void OnRender() override;
+	virtual int Sizeof() const override { return sizeof(*this); }
+	virtual void OnRender() override;
 };
 
 #endif

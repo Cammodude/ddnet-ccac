@@ -16,24 +16,34 @@
 
 enum
 {
-	ITEMTYPE_EX = 0xFFFF,
+	ITEMTYPE_EX = 0xffff,
 };
 
 // raw datafile access
 class CDataFileReader
 {
-	class CDatafile *m_pDataFile = nullptr;
+	struct CDatafile *m_pDataFile;
+	void *GetDataImpl(int Index, bool Swap);
+	int GetFileDataSize(int Index) const;
 
 	int GetExternalItemType(int InternalType, CUuid *pUuid);
 	int GetInternalItemType(int ExternalType);
 
 public:
-	~CDataFileReader();
-	CDataFileReader &operator=(CDataFileReader &&Other);
+	CDataFileReader() :
+		m_pDataFile(nullptr) {}
+	~CDataFileReader() { Close(); }
 
-	[[nodiscard]] bool Open(class IStorage *pStorage, const char *pFilename, int StorageType);
-	void Close();
-	bool IsOpen() const;
+	CDataFileReader &operator=(CDataFileReader &&Other)
+	{
+		m_pDataFile = Other.m_pDataFile;
+		Other.m_pDataFile = nullptr;
+		return *this;
+	}
+
+	bool Open(class IStorage *pStorage, const char *pFilename, int StorageType);
+	bool Close();
+	bool IsOpen() const { return m_pDataFile != nullptr; }
 	IOHANDLE File() const;
 
 	int GetDataSize(int Index) const;
@@ -67,9 +77,8 @@ public:
 	};
 
 private:
-	class CDataInfo
+	struct CDataInfo
 	{
-	public:
 		void *m_pUncompressedData;
 		int m_UncompressedSize;
 		void *m_pCompressedData;
@@ -77,9 +86,8 @@ private:
 		ECompressionLevel m_CompressionLevel;
 	};
 
-	class CItemInfo
+	struct CItemInfo
 	{
-	public:
 		int m_Type;
 		int m_Id;
 		int m_Size;
@@ -88,19 +96,22 @@ private:
 		void *m_pData;
 	};
 
-	class CItemTypeInfo
+	struct CItemTypeInfo
 	{
-	public:
 		int m_Num = 0;
 		int m_First = -1;
 		int m_Last = -1;
 	};
 
-	class CExtendedItemType
+	struct CExtendedItemType
 	{
-	public:
 		int m_Type;
 		CUuid m_Uuid;
+	};
+
+	enum
+	{
+		MAX_ITEM_TYPES = 0x10000,
 	};
 
 	IOHANDLE m_File;
@@ -125,7 +136,7 @@ public:
 	}
 	~CDataFileWriter();
 
-	[[nodiscard]] bool Open(class IStorage *pStorage, const char *pFilename, int StorageType = IStorage::TYPE_SAVE);
+	bool Open(class IStorage *pStorage, const char *pFilename, int StorageType = IStorage::TYPE_SAVE);
 	int AddItem(int Type, int Id, size_t Size, const void *pData, const CUuid *pUuid = nullptr);
 	int AddData(size_t Size, const void *pData, ECompressionLevel CompressionLevel = COMPRESSION_DEFAULT);
 	int AddDataSwapped(size_t Size, const void *pData);

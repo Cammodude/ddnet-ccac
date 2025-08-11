@@ -571,8 +571,6 @@ bool IsValidTuneTile(int Index);
 bool IsValidEntity(int Index);
 bool IsRotatableTile(int Index);
 bool IsCreditsTile(int TileIndex);
-
-int PackColor(const CColor &Color);
-CColor UnpackColor(int PackedColor);
+int PackColor(CColor Color);
 
 #endif

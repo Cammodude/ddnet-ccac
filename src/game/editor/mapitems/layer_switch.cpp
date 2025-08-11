@@ -6,7 +6,7 @@ CLayerSwitch::CLayerSwitch(CEditor *pEditor, int w, int h) :
 	CLayerTiles(pEditor, w, h)
 {
 	str_copy(m_aName, "Switch");
-	m_HasSwitch = true;
+	m_Switch = 1;
 
 	m_pSwitchTile = new CSwitchTile[w * h];
 	mem_zero(m_pSwitchTile, (size_t)w * h * sizeof(CSwitchTile));
@@ -18,7 +18,7 @@ CLayerSwitch::CLayerSwitch(const CLayerSwitch &Other) :
 	CLayerTiles(Other)
 {
 	str_copy(m_aName, "Switch copy");
-	m_HasSwitch = true;
+	m_Switch = 1;
 
 	m_pSwitchTile = new CSwitchTile[m_Width * m_Height];
 	mem_copy(m_pSwitchTile, Other.m_pSwitchTile, (size_t)m_Width * m_Height * sizeof(CSwitchTile));
@@ -57,23 +57,13 @@ void CLayerSwitch::Shift(int Direction)
 	ShiftImpl(m_pSwitchTile, Direction, m_pEditor->m_ShiftBy);
 }
 
-bool CLayerSwitch::IsEmpty() const
+bool CLayerSwitch::IsEmpty(const std::shared_ptr<CLayerTiles> &pLayer)
 {
-	for(int y = 0; y < m_Height; y++)
-	{
-		for(int x = 0; x < m_Width; x++)
-		{
-			const int Index = GetTile(x, y).m_Index;
-			if(Index == 0)
-			{
-				continue;
-			}
-			if(m_pEditor->IsAllowPlaceUnusedTiles() || IsValidSwitchTile(Index))
-			{
+	for(int y = 0; y < pLayer->m_Height; y++)
+		for(int x = 0; x < pLayer->m_Width; x++)
+			if(m_pEditor->IsAllowPlaceUnusedTiles() || IsValidSwitchTile(pLayer->GetTile(x, y).m_Index))
 				return false;
-			}
-		}
-	}
+
 	return true;
 }
 
@@ -91,7 +81,7 @@ void CLayerSwitch::BrushDraw(std::shared_ptr<CLayer> pBrush, vec2 WorldPos)
 		m_pEditor->m_SwitchDelay = pSwitchLayer->m_SwitchDelay;
 	}
 
-	bool Destructive = m_pEditor->m_BrushDrawDestructive || pSwitchLayer->IsEmpty();
+	bool Destructive = m_pEditor->m_BrushDrawDestructive || IsEmpty(pSwitchLayer);
 
 	for(int y = 0; y < pSwitchLayer->m_Height; y++)
 		for(int x = 0; x < pSwitchLayer->m_Width; x++)
@@ -240,6 +230,8 @@ void CLayerSwitch::FillSelection(bool Empty, std::shared_ptr<CLayer> pBrush, CUI
 	if(m_Readonly || (!Empty && pBrush->m_Type != LAYERTYPE_TILES))
 		return;
 
+	Snap(&Rect); // corrects Rect; no need of <=
+
 	Snap(&Rect);
 
 	int sx = ConvertX(Rect.x);
@@ -249,7 +241,7 @@ void CLayerSwitch::FillSelection(bool Empty, std::shared_ptr<CLayer> pBrush, CUI
 
 	std::shared_ptr<CLayerSwitch> pLt = std::static_pointer_cast<CLayerSwitch>(pBrush);
 
-	bool Destructive = m_pEditor->m_BrushDrawDestructive || Empty || pLt->IsEmpty();
+	bool Destructive = m_pEditor->m_BrushDrawDestructive || Empty || IsEmpty(pLt);
 
 	for(int y = 0; y < h; y++)
 	{
@@ -288,7 +280,7 @@ void CLayerSwitch::FillSelection(bool Empty, std::shared_ptr<CLayer> pBrush, CUI
 			{
 				m_pTiles[TgtIndex] = pLt->m_pTiles[SrcIndex];
 				m_pSwitchTile[TgtIndex].m_Type = m_pTiles[TgtIndex].m_Index;
-				if(pLt->m_HasSwitch && m_pTiles[TgtIndex].m_Index > 0)
+				if(pLt->m_Switch && m_pTiles[TgtIndex].m_Index > 0)
 				{
 					if(!IsSwitchTileNumberUsed(m_pSwitchTile[TgtIndex].m_Type))
 						m_pSwitchTile[TgtIndex].m_Number = 0;
@@ -331,19 +323,7 @@ void CLayerSwitch::FillSelection(bool Empty, std::shared_ptr<CLayer> pBrush, CUI
 	FlagModified(sx, sy, w, h);
 }
 
-int CLayerSwitch::FindNextFreeNumber() const
-{
-	for(int i = 1; i <= 255; i++)
-	{
-		if(!ContainsElementWithId(i))
-		{
-			return i;
-		}
-	}
-	return -1;
-}
-
-bool CLayerSwitch::ContainsElementWithId(int Id) const
+bool CLayerSwitch::ContainsElementWithId(int Id)
 {
 	for(int y = 0; y < m_Height; ++y)
 	{

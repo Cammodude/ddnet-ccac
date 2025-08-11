@@ -1,7 +1,6 @@
 // This file can be included several times.
 
 #ifndef REGISTER_QUICK_ACTION
-// This helps IDEs properly syntax highlight the uses of the macro below.
 #define REGISTER_QUICK_ACTION(name, text, callback, disabled, active, button_color, description)
 #endif
 
@@ -217,11 +216,7 @@ REGISTER_QUICK_ACTION(
 REGISTER_QUICK_ACTION(
 	SaveAs,
 	"Save as",
-	[&]() {
-		char aDefaultName[IO_MAX_PATH_LENGTH];
-		fs_split_file_extension(fs_filename(m_aFileName), aDefaultName, sizeof(aDefaultName));
-		m_FileBrowser.ShowFileDialog(IStorage::TYPE_SAVE, CFileBrowser::EFileType::MAP, "Save map", "Save as", "maps", aDefaultName, CallbackSaveMap, this);
-	},
+	[&]() { InvokeFileDialog(IStorage::TYPE_SAVE, FILETYPE_MAP, "Save map", "Save as", "maps", true, CEditor::CallbackSaveMap, this); },
 	ALWAYS_FALSE,
 	ALWAYS_FALSE,
 	DEFAULT_BTN,
@@ -271,7 +266,7 @@ REGISTER_QUICK_ACTION(
 REGISTER_QUICK_ACTION(
 	AddImage,
 	"Add image",
-	[&]() { m_FileBrowser.ShowFileDialog(IStorage::TYPE_ALL, CFileBrowser::EFileType::IMAGE, "Add image", "Add", "mapres", "", AddImage, this); },
+	[&]() { InvokeFileDialog(IStorage::TYPE_ALL, FILETYPE_IMG, "Add Image", "Add", "mapres", false, AddImage, this); },
 	ALWAYS_FALSE,
 	ALWAYS_FALSE,
 	DEFAULT_BTN,

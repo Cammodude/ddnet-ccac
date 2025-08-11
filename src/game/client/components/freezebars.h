@@ -9,8 +9,8 @@ class CFreezeBars : public CComponent
 	bool IsPlayerInfoAvailable(int ClientId) const;
 
 public:
-	int Sizeof() const override { return sizeof(*this); }
-	void OnRender() override;
+	virtual int Sizeof() const override { return sizeof(*this); }
+	virtual void OnRender() override;
 };
 
 #endif

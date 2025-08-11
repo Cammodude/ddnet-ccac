@@ -9,6 +9,7 @@
 #include <game/version.h>
 
 #include <limits>
+#include <thread>
 
 #if !defined(CONF_FAMILY_WINDOWS)
 #include <csignal>
@@ -21,7 +22,7 @@
 #undef ERROR
 #endif
 
-static int CurlDebug(CURL *pHandle, curl_infotype Type, char *pData, size_t DataSize, void *pUser)
+int CurlDebug(CURL *pHandle, curl_infotype Type, char *pData, size_t DataSize, void *pUser)
 {
 	char TypeChar;
 	switch(Type)
@@ -166,10 +167,10 @@ bool CHttpRequest::ConfigureHandle(void *pHandle)
 
 	curl_easy_setopt(pH, CURLOPT_ERRORBUFFER, m_aErr);
 
-	curl_easy_setopt(pH, CURLOPT_CONNECTTIMEOUT_MS, m_Timeout.m_ConnectTimeoutMs);
-	curl_easy_setopt(pH, CURLOPT_TIMEOUT_MS, m_Timeout.m_TimeoutMs);
-	curl_easy_setopt(pH, CURLOPT_LOW_SPEED_LIMIT, m_Timeout.m_LowSpeedLimit);
-	curl_easy_setopt(pH, CURLOPT_LOW_SPEED_TIME, m_Timeout.m_LowSpeedTime);
+	curl_easy_setopt(pH, CURLOPT_CONNECTTIMEOUT_MS, m_Timeout.ConnectTimeoutMs);
+	curl_easy_setopt(pH, CURLOPT_TIMEOUT_MS, m_Timeout.TimeoutMs);
+	curl_easy_setopt(pH, CURLOPT_LOW_SPEED_LIMIT, m_Timeout.LowSpeedLimit);
+	curl_easy_setopt(pH, CURLOPT_LOW_SPEED_TIME, m_Timeout.LowSpeedTime);
 	if(m_MaxResponseSize >= 0)
 	{
 		curl_easy_setopt(pH, CURLOPT_MAXFILESIZE_LARGE, (curl_off_t)m_MaxResponseSize);
@@ -384,7 +385,7 @@ void CHttpRequest::OnCompletionInternal(void *pHandle, unsigned int Result)
 	{
 		if(g_Config.m_DbgCurl || m_LogProgress >= HTTPLOG::FAILURE)
 		{
-			log_error("http", "%s failed. libcurl error (%u): %s", m_aUrl, Code, m_aErr[0] != '\0' ? m_aErr : curl_easy_strerror(Code));
+			log_error("http", "%s failed. libcurl error (%u): %s", m_aUrl, Code, m_aErr);
 		}
 		State = (Code == CURLE_ABORTED_BY_CALLBACK) ? EHttpState::ABORTED : EHttpState::ERROR;
 	}

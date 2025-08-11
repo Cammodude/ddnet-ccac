@@ -3,6 +3,8 @@
 #ifndef GAME_LOCALIZATION_H
 #define GAME_LOCALIZATION_H
 
+#include <base/system.h> // GNUC_ATTRIBUTE
+
 #include <engine/shared/memheap.h>
 
 #include <string>
@@ -32,7 +34,7 @@ class CLocalizationDatabase
 		unsigned m_ContextHash;
 		const char *m_pReplacement;
 
-		CString() = default;
+		CString() {}
 		CString(unsigned Hash, unsigned ContextHash, const char *pReplacement) :
 			m_Hash(Hash), m_ContextHash(ContextHash), m_pReplacement(pReplacement)
 		{
@@ -60,6 +62,6 @@ public:
 
 extern CLocalizationDatabase g_Localization;
 
-[[gnu::format_arg(1)]] extern const char *Localize(const char *pStr, const char *pContext = "");
-
+extern const char *Localize(const char *pStr, const char *pContext = "")
+	GNUC_ATTRIBUTE((format_arg(1)));
 #endif

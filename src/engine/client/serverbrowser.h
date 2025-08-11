@@ -11,8 +11,8 @@
 #include <engine/shared/memheap.h>
 
 #include <functional>
-#include <map>
-#include <set>
+#include <unordered_map>
+#include <unordered_set>
 
 typedef struct _json_value json_value;
 class CNetClient;
@@ -42,11 +42,6 @@ public:
 	{
 		return str_comp(Id(), Other.Id()) == 0;
 	}
-
-	bool operator<(const CCommunityId &Other) const
-	{
-		return str_comp(Id(), Other.Id()) < 0;
-	}
 };
 
 template<>
@@ -74,11 +69,6 @@ public:
 	{
 		return str_comp(Name(), Other.Name()) == 0;
 	}
-
-	bool operator<(const CCommunityCountryName &Other) const
-	{
-		return str_comp(Name(), Other.Name()) < 0;
-	}
 };
 
 template<>
@@ -105,11 +95,6 @@ public:
 	bool operator==(const CCommunityTypeName &Other) const
 	{
 		return str_comp(Name(), Other.Name()) == 0;
-	}
-
-	bool operator<(const CCommunityTypeName &Other) const
-	{
-		return str_comp(Name(), Other.Name()) < 0;
 	}
 };
 
@@ -169,7 +154,7 @@ public:
 	void Save(IConfigManager *pConfigManager) const;
 
 private:
-	std::set<CCommunityId> m_Entries;
+	std::unordered_set<CCommunityId> m_Entries;
 };
 
 class CExcludedCommunityCountryFilterList : public IFilterList
@@ -192,7 +177,7 @@ public:
 
 private:
 	const ICommunityCache *m_pCommunityCache;
-	std::map<CCommunityId, std::set<CCommunityCountryName>> m_Entries;
+	std::unordered_map<CCommunityId, std::unordered_set<CCommunityCountryName>> m_Entries;
 };
 
 class CExcludedCommunityTypeFilterList : public IFilterList
@@ -215,7 +200,7 @@ public:
 
 private:
 	const ICommunityCache *m_pCommunityCache;
-	std::map<CCommunityId, std::set<CCommunityTypeName>> m_Entries;
+	std::unordered_map<CCommunityId, std::unordered_set<CCommunityTypeName>> m_Entries;
 };
 
 class CCommunityCache : public ICommunityCache
@@ -256,7 +241,6 @@ public:
 	void Refresh(int Type, bool Force = false) override;
 	bool IsRefreshing() const override;
 	bool IsGettingServerlist() const override;
-	bool IsServerlistError() const override;
 	int LoadingProgression() const override;
 	void RequestResort() { m_NeedResort = true; }
 

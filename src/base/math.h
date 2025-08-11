@@ -5,11 +5,9 @@
 
 #include <algorithm>
 #include <cmath>
-#include <concepts>
 #include <cstdlib>
 
-template<typename T>
-concept Numeric = std::integral<T> || std::floating_point<T>;
+using std::clamp;
 
 constexpr float pi = 3.1415926535897932384626433f;
 
@@ -105,50 +103,50 @@ class fxp
 	int value;
 
 public:
-	constexpr void set(int v)
+	void set(int v)
 	{
 		value = v;
 	}
-	constexpr int get() const
+	int get() const
 	{
 		return value;
 	}
-	constexpr fxp &operator=(int v)
+	fxp &operator=(int v)
 	{
 		value = i2fx(v);
 		return *this;
 	}
-	constexpr fxp &operator=(float v)
+	fxp &operator=(float v)
 	{
 		value = f2fx(v);
 		return *this;
 	}
-	constexpr operator int() const
+	operator int() const
 	{
 		return fx2i(value);
 	}
-	constexpr operator float() const
+	operator float() const
 	{
 		return fx2f(value);
 	}
 };
 
-template<Numeric T>
+template<typename T>
 constexpr T minimum(T a, T b)
 {
 	return std::min(a, b);
 }
-template<Numeric T>
+template<typename T>
 constexpr T minimum(T a, T b, T c)
 {
 	return std::min(std::min(a, b), c);
 }
-template<Numeric T>
+template<typename T>
 constexpr T maximum(T a, T b)
 {
 	return std::max(a, b);
 }
-template<Numeric T>
+template<typename T>
 constexpr T maximum(T a, T b, T c)
 {
 	return std::max(std::max(a, b), c);
@@ -159,12 +157,12 @@ constexpr T absolute(T a)
 	return a < T(0) ? -a : a;
 }
 
-template<Numeric T>
+template<typename T>
 constexpr bool in_range(T a, T lower, T upper)
 {
 	return lower <= a && a <= upper;
 }
-template<Numeric T>
+template<typename T>
 constexpr bool in_range(T a, T upper)
 {
 	return in_range(a, 0, upper);

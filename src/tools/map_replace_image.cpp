@@ -16,16 +16,16 @@
 		new image filepath must be absolute or relative to the current position
 */
 
-static CDataFileReader g_DataReader;
+CDataFileReader g_DataReader;
 
 // global new image data (set by ReplaceImageItem)
-static int g_NewNameId = -1;
-static char g_aNewName[128];
-static int g_NewDataId = -1;
-static int g_NewDataSize = 0;
-static void *g_pNewData = nullptr;
+int g_NewNameId = -1;
+char g_aNewName[128];
+int g_NewDataId = -1;
+int g_NewDataSize = 0;
+void *g_pNewData = nullptr;
 
-static void *ReplaceImageItem(int Index, CMapItemImage *pImgItem, const char *pImgName, const char *pImgFile, CMapItemImage *pNewImgItem)
+void *ReplaceImageItem(int Index, CMapItemImage *pImgItem, const char *pImgName, const char *pImgFile, CMapItemImage *pNewImgItem)
 {
 	const char *pName = g_DataReader.GetDataString(pImgItem->m_ImageName);
 	if(pName == nullptr || pName[0] == '\0')
@@ -79,10 +79,10 @@ int main(int argc, const char **argv)
 		return -1;
 	}
 
-	std::unique_ptr<IStorage> pStorage = std::unique_ptr<IStorage>(CreateStorage(IStorage::EInitializationType::BASIC, argc, argv));
+	IStorage *pStorage = CreateStorage(IStorage::EInitializationType::BASIC, argc, argv);
 	if(!pStorage)
 	{
-		log_error("map_replace_image", "Error creating basic storage");
+		dbg_msg("map_replace_image", "error loading storage");
 		return -1;
 	}
 
@@ -91,14 +91,14 @@ int main(int argc, const char **argv)
 	const char *pImageName = argv[3];
 	const char *pImageFile = argv[4];
 
-	if(!g_DataReader.Open(pStorage.get(), pSourceFileName, IStorage::TYPE_ALL))
+	if(!g_DataReader.Open(pStorage, pSourceFileName, IStorage::TYPE_ALL))
 	{
 		dbg_msg("map_replace_image", "failed to open source map. filename='%s'", pSourceFileName);
 		return -1;
 	}
 
 	CDataFileWriter Writer;
-	if(!Writer.Open(pStorage.get(), pDestFileName))
+	if(!Writer.Open(pStorage, pDestFileName))
 	{
 		dbg_msg("map_replace_image", "failed to open destination map. filename='%s'", pDestFileName);
 		return -1;

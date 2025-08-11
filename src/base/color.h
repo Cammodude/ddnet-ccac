@@ -61,24 +61,36 @@ public:
 	{
 	}
 
-	constexpr color4_base(const vec4 &v4) :
-		x(v4.x), y(v4.y), z(v4.z), a(v4.w)
+	constexpr color4_base(const vec4 &v4)
 	{
+		x = v4.x;
+		y = v4.y;
+		z = v4.z;
+		a = v4.w;
 	}
 
-	constexpr color4_base(const vec3 &v3) :
-		x(v3.x), y(v3.y), z(v3.z), a(1.0f)
+	constexpr color4_base(const vec3 &v3)
 	{
+		x = v3.x;
+		y = v3.y;
+		z = v3.z;
+		a = 1.0f;
 	}
 
-	constexpr color4_base(float nx, float ny, float nz, float na) :
-		x(nx), y(ny), z(nz), a(na)
+	constexpr color4_base(float nx, float ny, float nz, float na)
 	{
+		x = nx;
+		y = ny;
+		z = nz;
+		a = na;
 	}
 
-	constexpr color4_base(float nx, float ny, float nz) :
-		x(nx), y(ny), z(nz), a(1.0f)
+	constexpr color4_base(float nx, float ny, float nz)
 	{
+		x = nx;
+		y = ny;
+		z = nz;
+		a = 1.0f;
 	}
 
 	constexpr color4_base(unsigned col, bool alpha = false)
@@ -182,7 +194,7 @@ public:
 	{
 		ColorHSLA col = *this;
 		col.l = (l - Darkest) / (1 - Darkest);
-		col.l = std::clamp(col.l, 0.0f, 1.0f);
+		col.l = clamp(col.l, 0.0f, 1.0f);
 		return col.Pack(Alpha);
 	}
 };

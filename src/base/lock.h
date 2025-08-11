@@ -1,5 +1,3 @@
-// Taken from https://clang.llvm.org/docs/ThreadSafetyAnalysis.html
-
 #ifndef BASE_LOCK_H
 #define BASE_LOCK_H
 

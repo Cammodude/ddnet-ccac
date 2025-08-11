@@ -131,7 +131,7 @@ export TW_VERSION_CODE=$ANDROID_VERSION_CODE
 
 ANDROID_VERSION_NAME="1.0"
 if [ -z ${TW_VERSION_NAME+x} ]; then
-	ANDROID_VERSION_NAME="$(grep '#define GAME_RELEASE_VERSION_INTERNAL' src/game/version.h | awk '{print $3}')"
+	ANDROID_VERSION_NAME="$(grep '#define GAME_RELEASE_VERSION' src/game/version.h | awk '{print $3}' | tr -d '"')"
 	if [ -z ${ANDROID_VERSION_NAME+x} ]; then
 		ANDROID_VERSION_NAME="1.0"
 	fi
@@ -231,7 +231,7 @@ log_info "Copying libraries..."
 
 function copy_libs() {
 	mkdir -p "lib/$2"
-	cp "$ANDROID_SUB_BUILD_DIR/$1/libDDNet.so" "lib/$2" || exit 1
+	cp "$ANDROID_SUB_BUILD_DIR/$1/libchillerbot-ux.so" "lib/$2" || exit 1
 	cp "$ANDROID_SUB_BUILD_DIR/$1/libDDNet-Server.so" "lib/$2" || exit 1
 }
 

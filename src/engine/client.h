@@ -18,9 +18,6 @@
 #include <functional>
 #include <optional>
 
-#define CONNECTLINK_DOUBLE_SLASH "ddnet://"
-#define CONNECTLINK_NO_SLASH "ddnet:"
-
 struct SWarning;
 
 enum
@@ -60,9 +57,9 @@ public:
 	};
 
 	/**
-	 * More precise state for @see STATE_LOADING
-	 * Sets what is actually happening in the client right now
-	 */
+	* More precise state for @see STATE_LOADING
+	* Sets what is actually happening in the client right now
+	*/
 	enum ELoadingStateDetail
 	{
 		LOADING_STATE_DETAIL_INITIAL,
@@ -99,7 +96,7 @@ protected:
 	float m_LocalTime = 0.0f;
 	float m_GlobalTime = 0.0f;
 	float m_RenderFrameTime = 0.0001f;
-	float m_FrameTimeAverage = 0.0001f;
+	float m_FrameTimeAvg = 0.0001f;
 
 	TLoadingCallback m_LoadingCallback = nullptr;
 
@@ -158,7 +155,7 @@ public:
 	inline float RenderFrameTime() const { return m_RenderFrameTime; }
 	inline float LocalTime() const { return m_LocalTime; }
 	inline float GlobalTime() const { return m_GlobalTime; }
-	inline float FrameTimeAverage() const { return m_FrameTimeAverage; }
+	inline float FrameTimeAvg() const { return m_FrameTimeAvg; }
 
 	// actions
 	virtual void Connect(const char *pAddress, const char *pPassword = nullptr) = 0;
@@ -188,6 +185,9 @@ public:
 	virtual void ServerBrowserUpdate() = 0;
 
 	// gfx
+	virtual void SwitchWindowScreen(int Index) = 0;
+	virtual void SetWindowParams(int FullscreenMode, bool IsBorderless) = 0;
+	virtual void ToggleWindowVSync() = 0;
 	virtual void Notify(const char *pTitle, const char *pMessage) = 0;
 	virtual void OnWindowResize() = 0;
 
@@ -272,7 +272,7 @@ public:
 
 	virtual IGraphics::CTextureHandle GetDebugFont() const = 0; // TODO: remove this function
 
-	// DDRace
+	//DDRace
 
 	virtual const char *GetCurrentMap() const = 0;
 	virtual const char *GetCurrentMapPath() const = 0;
@@ -294,13 +294,6 @@ public:
 	virtual void DemoSliceEnd() = 0;
 	virtual void DemoSlice(const char *pDstPath, CLIENTFUNC_FILTER pfnFilter, void *pUser) = 0;
 
-	enum class EInfoState
-	{
-		LOADING,
-		SUCCESS,
-		ERROR,
-	};
-	virtual EInfoState InfoState() const = 0;
 	virtual void RequestDDNetInfo() = 0;
 	virtual bool EditorHasUnsavedData() const = 0;
 
@@ -342,8 +335,19 @@ public:
 	virtual void ShellUnregister() = 0;
 #endif
 
-	virtual std::optional<int> ShowMessageBox(const IGraphics::CMessageBox &MessageBox) = 0;
-	virtual void GetGpuInfoString(char (&aGpuInfo)[512]) = 0;
+	enum EMessageBoxType
+	{
+		MESSAGE_BOX_TYPE_ERROR,
+		MESSAGE_BOX_TYPE_WARNING,
+		MESSAGE_BOX_TYPE_INFO,
+	};
+	virtual void ShowMessageBox(const char *pTitle, const char *pMessage, EMessageBoxType Type = MESSAGE_BOX_TYPE_ERROR) = 0;
+
+	virtual void GetGpuInfoString(char (&aGpuInfo)[256]) = 0;
+
+	// chillerbot
+
+	virtual void ChillerBotLoadMap(const char *pMap) = 0;
 };
 
 class IGameClient : public IInterface
@@ -395,10 +399,11 @@ public:
 	virtual void ApplySkin7InfoFromSnapObj(const protocol7::CNetObj_De_ClientInfo *pObj, int ClientId) = 0;
 	virtual int OnDemoRecSnap7(class CSnapshot *pFrom, class CSnapshot *pTo, int Conn) = 0;
 	virtual int TranslateSnap(class CSnapshot *pSnapDstSix, class CSnapshot *pSnapSrcSeven, int Conn, bool Dummy) = 0;
-	virtual void ProcessDemoSnapshot(class CSnapshot *pSnap) = 0;
 
 	virtual void InitializeLanguage() = 0;
 };
+
+void SnapshotRemoveExtraProjectileInfo(class CSnapshot *pSnap);
 
 extern IGameClient *CreateGameClient();
 #endif

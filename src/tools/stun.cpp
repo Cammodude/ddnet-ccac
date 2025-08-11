@@ -2,10 +2,6 @@
 #include <base/system.h>
 #include <engine/shared/stun.h>
 
-#include <chrono>
-
-using namespace std::chrono_literals;
-
 int main(int argc, const char **argv)
 {
 	CCmdlineFix CmdlineFix(&argc, &argv);
@@ -53,7 +49,7 @@ int main(int argc, const char **argv)
 	unsigned char *pResponse;
 	while(true)
 	{
-		if(!net_socket_read_wait(Socket, 1s))
+		if(!net_socket_read_wait(Socket, 1000000))
 		{
 			log_error("stun", "no udp message received from server until timeout");
 			return 3;

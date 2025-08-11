@@ -13,7 +13,6 @@
 #include <game/generated/protocol.h>
 #include <game/generated/server_data.h>
 #include <game/mapitems.h>
-#include <game/team_state.h>
 
 #include <game/server/gamecontext.h>
 #include <game/server/gamecontroller.h>
@@ -183,7 +182,7 @@ void CCharacter::SetSuper(bool Super)
 	{
 		m_TeamBeforeSuper = Team();
 		Teams()->SetCharacterTeam(GetPlayer()->GetCid(), TEAM_SUPER);
-		m_DDRaceState = ERaceState::CHEATED;
+		m_DDRaceState = DDRACE_CHEAT;
 	}
 	else if(!Super && WasSuper)
 	{
@@ -524,6 +523,9 @@ void CCharacter::FireWeapon()
 				m_pPlayer->GetCid(), m_Core.m_ActiveWeapon);
 			pTarget->UnFreeze();
 
+			if(m_FreezeHammer)
+				pTarget->Freeze();
+
 			Antibot()->OnHammerHit(m_pPlayer->GetCid(), pTarget->GetPlayer()->GetCid());
 
 			Hits++;
@@ -620,7 +622,7 @@ void CCharacter::FireWeapon()
 	if(!m_ReloadTimer)
 	{
 		float FireDelay;
-		GetTuning(m_TuneZone)->Get(offsetof(CTuningParams, m_HammerFireDelay) / sizeof(CTuneParam) + m_Core.m_ActiveWeapon, &FireDelay);
+		GetTuning(m_TuneZone)->Get(38 + m_Core.m_ActiveWeapon, &FireDelay);
 		m_ReloadTimer = FireDelay * Server()->TickSpeed() / 1000;
 	}
 }
@@ -677,7 +679,7 @@ void CCharacter::SetEmote(int Emote, int Tick)
 	m_EmoteStop = Tick;
 }
 
-void CCharacter::OnPredictedInput(const CNetObj_PlayerInput *pNewInput)
+void CCharacter::OnPredictedInput(CNetObj_PlayerInput *pNewInput)
 {
 	// check for changes
 	if(mem_comp(&m_SavedInput, pNewInput, sizeof(CNetObj_PlayerInput)) != 0)
@@ -693,7 +695,7 @@ void CCharacter::OnPredictedInput(const CNetObj_PlayerInput *pNewInput)
 	mem_copy(&m_SavedInput, &m_Input, sizeof(m_SavedInput));
 }
 
-void CCharacter::OnDirectInput(const CNetObj_PlayerInput *pNewInput)
+void CCharacter::OnDirectInput(CNetObj_PlayerInput *pNewInput)
 {
 	mem_copy(&m_LatestPrevInput, &m_LatestInput, sizeof(m_LatestInput));
 	mem_copy(&m_LatestInput, pNewInput, sizeof(m_LatestInput));
@@ -934,7 +936,7 @@ bool CCharacter::IncreaseHealth(int Amount)
 {
 	if(m_Health >= 10)
 		return false;
-	m_Health = std::clamp(m_Health + Amount, 0, 10);
+	m_Health = clamp(m_Health + Amount, 0, 10);
 	return true;
 }
 
@@ -942,7 +944,7 @@ bool CCharacter::IncreaseArmor(int Amount)
 {
 	if(m_Armor >= 10)
 		return false;
-	m_Armor = std::clamp(m_Armor + Amount, 0, 10);
+	m_Armor = clamp(m_Armor + Amount, 0, 10);
 	return true;
 }
 
@@ -963,8 +965,6 @@ void CCharacter::StopRecording()
 
 void CCharacter::Die(int Killer, int Weapon, bool SendKillMsg)
 {
-	if(Killer != WEAPON_GAME && m_SetSavePos[RESCUEMODE_AUTO])
-		GetPlayer()->m_LastDeath = m_RescueTee[RESCUEMODE_AUTO];
 	StopRecording();
 	int ModeSpecial = GameServer()->m_pController->OnCharacterDeath(this, GameServer()->m_apPlayers[Killer], Weapon);
 
@@ -975,7 +975,7 @@ void CCharacter::Die(int Killer, int Weapon, bool SendKillMsg)
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 
 	// send the kill message
-	if(SendKillMsg && (Team() == TEAM_FLOCK || Teams()->TeamFlock(Team()) || Teams()->Count(Team()) == 1 || Teams()->GetTeamState(Team()) == ETeamState::OPEN || !Teams()->TeamLocked(Team())))
+	if(SendKillMsg && (Team() == TEAM_FLOCK || Teams()->TeamFlock(Team()) || Teams()->Count(Team()) == 1 || Teams()->GetTeamState(Team()) == CGameTeams::TEAMSTATE_OPEN || !Teams()->TeamLocked(Team())))
 	{
 		CNetMsg_Sv_KillMsg Msg;
 		Msg.m_Killer = Killer;
@@ -1086,7 +1086,7 @@ void CCharacter::SnapCharacter(int SnappingClient, int Id)
 	}
 
 	if(m_pPlayer->GetCid() == SnappingClient || SnappingClient == SERVER_DEMO_CLIENT ||
-		(!g_Config.m_SvStrictSpectateMode && m_pPlayer->GetCid() == GameServer()->m_apPlayers[SnappingClient]->SpectatorId()))
+		(!g_Config.m_SvStrictSpectateMode && m_pPlayer->GetCid() == GameServer()->m_apPlayers[SnappingClient]->m_SpectatorId))
 	{
 		Health = m_Health;
 		Armor = m_Armor;
@@ -1176,9 +1176,9 @@ bool CCharacter::CanSnapCharacter(int SnappingClient)
 
 	if(pSnapPlayer->GetTeam() == TEAM_SPECTATORS || pSnapPlayer->IsPaused())
 	{
-		if(pSnapPlayer->SpectatorId() != SPEC_FREEVIEW && !CanCollide(pSnapPlayer->SpectatorId()) && (pSnapPlayer->m_ShowOthers == SHOW_OTHERS_OFF || (pSnapPlayer->m_ShowOthers == SHOW_OTHERS_ONLY_TEAM && !SameTeam(pSnapPlayer->SpectatorId()))))
+		if(pSnapPlayer->m_SpectatorId != SPEC_FREEVIEW && !CanCollide(pSnapPlayer->m_SpectatorId) && (pSnapPlayer->m_ShowOthers == SHOW_OTHERS_OFF || (pSnapPlayer->m_ShowOthers == SHOW_OTHERS_ONLY_TEAM && !SameTeam(pSnapPlayer->m_SpectatorId))))
 			return false;
-		else if(pSnapPlayer->SpectatorId() == SPEC_FREEVIEW && !CanCollide(SnappingClient) && pSnapPlayer->m_SpecTeam && !SameTeam(SnappingClient))
+		else if(pSnapPlayer->m_SpectatorId == SPEC_FREEVIEW && !CanCollide(SnappingClient) && pSnapPlayer->m_SpecTeam && !SameTeam(SnappingClient))
 			return false;
 	}
 	else if(pSnapChar && !pSnapChar->m_Core.m_Super && !CanCollide(SnappingClient) && (pSnapPlayer->m_ShowOthers == SHOW_OTHERS_OFF || (pSnapPlayer->m_ShowOthers == SHOW_OTHERS_ONLY_TEAM && !SameTeam(SnappingClient))))
@@ -1228,8 +1228,7 @@ void CCharacter::Snap(int SnappingClient)
 		return;
 	}
 
-	// always snap the snapping client, even if it is not in view
-	if(!IsSnappingCharacterInView(SnappingClient) && Id != SnappingClient)
+	if(!IsSnappingCharacterInView(SnappingClient))
 		return;
 
 	SnapCharacter(SnappingClient, Id);
@@ -1247,9 +1246,9 @@ void CCharacter::Snap(int SnappingClient)
 		pDDNetCharacter->m_Flags |= CHARACTERFLAG_INVINCIBLE;
 	if(m_Core.m_EndlessHook)
 		pDDNetCharacter->m_Flags |= CHARACTERFLAG_ENDLESS_HOOK;
-	if(m_Core.m_CollisionDisabled || !GetTuning(m_TuneZone)->m_PlayerCollision)
+	if(m_Core.m_CollisionDisabled || !Tuning()->m_PlayerCollision)
 		pDDNetCharacter->m_Flags |= CHARACTERFLAG_COLLISION_DISABLED;
-	if(m_Core.m_HookHitDisabled || !GetTuning(m_TuneZone)->m_PlayerHooking)
+	if(m_Core.m_HookHitDisabled || !Tuning()->m_PlayerHooking)
 		pDDNetCharacter->m_Flags |= CHARACTERFLAG_HOOK_HIT_DISABLED;
 	if(m_Core.m_EndlessJump)
 		pDDNetCharacter->m_Flags |= CHARACTERFLAG_ENDLESS_JUMP;
@@ -1311,12 +1310,9 @@ void CCharacter::Snap(int SnappingClient)
 	}
 	pDDNetCharacter->m_TargetX = m_Core.m_Input.m_TargetX;
 	pDDNetCharacter->m_TargetY = m_Core.m_Input.m_TargetY;
-
-	// -1 is the default value, SnapNewItem zeroes the object, so it would incorrectly become 0
-	pDDNetCharacter->m_TuneZoneOverride = -1;
 }
 
-void CCharacter::PostGlobalSnap()
+void CCharacter::PostSnap()
 {
 	m_TriggeredEvents7 = 0;
 }
@@ -1345,49 +1341,19 @@ void CCharacter::FillAntibot(CAntibotCharacterData *pData)
 	pData->m_HookedPlayer = m_Core.HookedPlayer();
 	pData->m_SpawnTick = m_SpawnTick;
 	pData->m_WeaponChangeTick = m_WeaponChangeTick;
-
-	// 0
-	pData->m_aLatestInputs[0].m_Direction = m_LatestInput.m_Direction;
 	pData->m_aLatestInputs[0].m_TargetX = m_LatestInput.m_TargetX;
 	pData->m_aLatestInputs[0].m_TargetY = m_LatestInput.m_TargetY;
-	pData->m_aLatestInputs[0].m_Jump = m_LatestInput.m_Jump;
-	pData->m_aLatestInputs[0].m_Fire = m_LatestInput.m_Fire;
-	pData->m_aLatestInputs[0].m_Hook = m_LatestInput.m_Hook;
-	pData->m_aLatestInputs[0].m_PlayerFlags = m_LatestInput.m_PlayerFlags;
-	pData->m_aLatestInputs[0].m_WantedWeapon = m_LatestInput.m_WantedWeapon;
-	pData->m_aLatestInputs[0].m_NextWeapon = m_LatestInput.m_NextWeapon;
-	pData->m_aLatestInputs[0].m_PrevWeapon = m_LatestInput.m_PrevWeapon;
-
-	// 1
-	pData->m_aLatestInputs[1].m_Direction = m_LatestPrevInput.m_Direction;
 	pData->m_aLatestInputs[1].m_TargetX = m_LatestPrevInput.m_TargetX;
 	pData->m_aLatestInputs[1].m_TargetY = m_LatestPrevInput.m_TargetY;
-	pData->m_aLatestInputs[1].m_Jump = m_LatestPrevInput.m_Jump;
-	pData->m_aLatestInputs[1].m_Fire = m_LatestPrevInput.m_Fire;
-	pData->m_aLatestInputs[1].m_Hook = m_LatestPrevInput.m_Hook;
-	pData->m_aLatestInputs[1].m_PlayerFlags = m_LatestPrevInput.m_PlayerFlags;
-	pData->m_aLatestInputs[1].m_WantedWeapon = m_LatestPrevInput.m_WantedWeapon;
-	pData->m_aLatestInputs[1].m_NextWeapon = m_LatestPrevInput.m_NextWeapon;
-	pData->m_aLatestInputs[1].m_PrevWeapon = m_LatestPrevInput.m_PrevWeapon;
-
-	// 2
-	pData->m_aLatestInputs[2].m_Direction = m_LatestPrevPrevInput.m_Direction;
 	pData->m_aLatestInputs[2].m_TargetX = m_LatestPrevPrevInput.m_TargetX;
 	pData->m_aLatestInputs[2].m_TargetY = m_LatestPrevPrevInput.m_TargetY;
-	pData->m_aLatestInputs[2].m_Jump = m_LatestPrevPrevInput.m_Jump;
-	pData->m_aLatestInputs[2].m_Fire = m_LatestPrevPrevInput.m_Fire;
-	pData->m_aLatestInputs[2].m_Hook = m_LatestPrevPrevInput.m_Hook;
-	pData->m_aLatestInputs[2].m_PlayerFlags = m_LatestPrevPrevInput.m_PlayerFlags;
-	pData->m_aLatestInputs[2].m_WantedWeapon = m_LatestPrevPrevInput.m_WantedWeapon;
-	pData->m_aLatestInputs[2].m_NextWeapon = m_LatestPrevPrevInput.m_NextWeapon;
-	pData->m_aLatestInputs[2].m_PrevWeapon = m_LatestPrevPrevInput.m_PrevWeapon;
 }
 
 void CCharacter::HandleBroadcast()
 {
 	CPlayerData *pData = GameServer()->Score()->PlayerData(m_pPlayer->GetCid());
 
-	if(m_DDRaceState == ERaceState::STARTED && m_pPlayer->GetClientVersion() == VERSION_VANILLA &&
+	if(m_DDRaceState == DDRACE_STARTED && m_pPlayer->GetClientVersion() == VERSION_VANILLA &&
 		m_LastTimeCpBroadcasted != m_LastTimeCp && m_LastTimeCp > -1 &&
 		m_TimeCpBroadcastEndTick > Server()->Tick() && pData->m_BestTime && pData->m_aBestTimeCp[m_LastTimeCp] != 0)
 	{
@@ -1398,7 +1364,7 @@ void CCharacter::HandleBroadcast()
 		m_LastTimeCpBroadcasted = m_LastTimeCp;
 		m_LastBroadcast = Server()->Tick();
 	}
-	else if((m_pPlayer->m_TimerType == CPlayer::TIMERTYPE_BROADCAST || m_pPlayer->m_TimerType == CPlayer::TIMERTYPE_GAMETIMER_AND_BROADCAST) && m_DDRaceState == ERaceState::STARTED && m_LastBroadcast + Server()->TickSpeed() * g_Config.m_SvTimeInBroadcastInterval <= Server()->Tick())
+	else if((m_pPlayer->m_TimerType == CPlayer::TIMERTYPE_BROADCAST || m_pPlayer->m_TimerType == CPlayer::TIMERTYPE_GAMETIMER_AND_BROADCAST) && m_DDRaceState == DDRACE_STARTED && m_LastBroadcast + Server()->TickSpeed() * g_Config.m_SvTimeInBroadcastInterval <= Server()->Tick())
 	{
 		char aBuf[32];
 		int Time = (int64_t)100 * ((float)(Server()->Tick() - m_StartTime) / ((float)Server()->TickSpeed()));
@@ -1434,10 +1400,8 @@ void CCharacter::HandleSkippableTiles(int Index)
 			}
 		}
 		else
-		{
 			Die(m_pPlayer->GetCid(), WEAPON_WORLD);
-			return;
-		}
+		return;
 	}
 
 	if(GameLayerClipped(m_Pos))
@@ -1512,21 +1476,20 @@ void CCharacter::HandleSkippableTiles(int Index)
 		}
 		else if(Type == TILE_SPEED_BOOST)
 		{
-			constexpr float MaxSpeedScale = 5.0f;
 			if(MaxSpeed == 0)
 			{
-				float MaxRampSpeed = GetTuning(m_TuneZone)->m_VelrampRange / (50 * log(maximum((float)GetTuning(m_TuneZone)->m_VelrampCurvature, 1.01f)));
-				MaxSpeed = maximum(MaxRampSpeed, GetTuning(m_TuneZone)->m_VelrampStart / 50) * MaxSpeedScale;
-			}
-
-			// (signed) length of projection
-			float CurrentDirectionalSpeed = dot(Direction, m_Core.m_Vel);
-			float TempMaxSpeed = MaxSpeed / MaxSpeedScale;
-			if(CurrentDirectionalSpeed + Force > TempMaxSpeed)
-				TempVel += Direction * (TempMaxSpeed - CurrentDirectionalSpeed);
-			else
 				TempVel += Direction * Force;
-
+			}
+			else
+			{
+				// hardest to understand
+				float CurrentDirectionalSpeed = dot(Direction, m_Core.m_Vel);
+				float TempMaxSpeed = MaxSpeed / 5.0f;
+				if(CurrentDirectionalSpeed + Force > TempMaxSpeed)
+					TempVel += Direction * (TempMaxSpeed - CurrentDirectionalSpeed);
+				else
+					TempVel += Direction * Force;
+			}
 			m_Core.m_Vel = ClampVel(m_MoveRestrictions, TempVel);
 		}
 	}
@@ -1541,7 +1504,7 @@ bool CCharacter::IsSwitchActiveCb(int Number, void *pUser)
 
 void CCharacter::SetTimeCheckpoint(int TimeCheckpoint)
 {
-	if(TimeCheckpoint > -1 && m_DDRaceState == ERaceState::STARTED && m_aCurrentTimeCp[TimeCheckpoint] == 0.0f && m_Time != 0.0f)
+	if(TimeCheckpoint > -1 && m_DDRaceState == DDRACE_STARTED && m_aCurrentTimeCp[TimeCheckpoint] == 0.0f && m_Time != 0.0f)
 	{
 		m_LastTimeCp = TimeCheckpoint;
 		m_aCurrentTimeCp[m_LastTimeCp] = m_Time;
@@ -2417,7 +2380,7 @@ void CCharacter::Pause(bool Pause)
 void CCharacter::DDRaceInit()
 {
 	m_Paused = false;
-	m_DDRaceState = ERaceState::NONE;
+	m_DDRaceState = DDRACE_NONE;
 	m_PrevPos = m_Pos;
 	for(bool &Set : m_SetSavePos)
 		Set = false;
@@ -2441,6 +2404,7 @@ void CCharacter::DDRaceInit()
 		m_Core.m_LaserHitDisabled = true;
 	}
 	m_Core.m_Jumps = 2;
+	m_FreezeHammer = false;
 
 	int Team = Teams()->m_Core.Team(m_Core.m_Id);
 
@@ -2480,7 +2444,7 @@ void CCharacter::Rescue()
 		}
 
 		m_LastRescue = Server()->Tick();
-		int StartTime = m_StartTime;
+		float StartTime = m_StartTime;
 		m_RescueTee[GetPlayer()->m_RescueMode].Load(this, Team());
 		// Don't load these from saved tee:
 		m_Core.m_Vel = vec2(0, 0);

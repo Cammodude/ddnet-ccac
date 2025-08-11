@@ -42,7 +42,7 @@ class CDemoRecorder : public IDemoRecorder
 
 public:
 	CDemoRecorder(class CSnapshotDelta *pSnapshotDelta, bool NoMapData = false);
-	CDemoRecorder() = default;
+	CDemoRecorder() {}
 	~CDemoRecorder() override;
 
 	int Start(class IStorage *pStorage, class IConsole *pConsole, const char *pFilename, const char *pNetversion, const char *pMap, const SHA256_DIGEST &Sha256, unsigned MapCrc, const char *pType, unsigned MapSize, unsigned char *pMapData, IOHANDLE MapFile, DEMOFUNC_FILTER pfnFilter, void *pUser);
@@ -66,14 +66,13 @@ public:
 	class IListener
 	{
 	public:
-		virtual ~IListener() = default;
+		virtual ~IListener() {}
 		virtual void OnDemoPlayerSnapshot(void *pData, int Size) = 0;
 		virtual void OnDemoPlayerMessage(void *pData, int Size) = 0;
 	};
 
-	class CPlaybackInfo
+	struct CPlaybackInfo
 	{
-	public:
 		CDemoHeader m_Header;
 		CTimelineMarkers m_TimelineMarkers;
 
@@ -96,13 +95,12 @@ private:
 	TUpdateIntraTimesFunc m_UpdateIntraTimesFunc;
 
 	// Playback
-	class CKeyFrame
+	struct SKeyFrame
 	{
-	public:
 		int64_t m_Filepos;
 		int m_Tick;
 
-		CKeyFrame(int64_t Filepos, int Tick) :
+		SKeyFrame(int64_t Filepos, int Tick) :
 			m_Filepos(Filepos), m_Tick(Tick)
 		{
 		}
@@ -113,7 +111,7 @@ private:
 	int64_t m_MapOffset;
 	char m_aFilename[IO_MAX_PATH_LENGTH];
 	char m_aErrorMessage[256];
-	std::vector<CKeyFrame> m_vKeyFrames;
+	std::vector<SKeyFrame> m_vKeyFrames;
 	CMapInfo m_MapInfo;
 	int m_SpeedIndex;
 
@@ -145,7 +143,6 @@ private:
 	EReadChunkHeaderResult ReadChunkHeader(int *pType, int *pSize, int *pTick);
 	void DoTick();
 	bool ScanFile();
-	void UpdateTimes();
 
 	int64_t Time();
 	bool m_Sixup;
@@ -162,7 +159,7 @@ public:
 	int Load(class IStorage *pStorage, class IConsole *pConsole, const char *pFilename, int StorageType);
 	unsigned char *GetMapData(class IStorage *pStorage);
 	bool ExtractMap(class IStorage *pStorage);
-	void Play();
+	int Play();
 	void Pause() override;
 	void Unpause() override;
 	void Stop(const char *pErrorMessage = "");

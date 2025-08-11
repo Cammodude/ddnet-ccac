@@ -32,14 +32,16 @@ protected:
 
 	virtual CBackgroundEngineMap *CreateBGMap();
 
+	const char *LoadingTitle() const override;
+
 public:
 	CBackground(int MapType = CMapLayers::TYPE_BACKGROUND_FORCE, bool OnlineOnly = true);
 	virtual ~CBackground();
-	int Sizeof() const override { return sizeof(*this); }
+	virtual int Sizeof() const override { return sizeof(*this); }
 
-	void OnInit() override;
-	void OnMapLoad() override;
-	void OnRender() override;
+	virtual void OnInit() override;
+	virtual void OnMapLoad() override;
+	virtual void OnRender() override;
 
 	void LoadBackground();
 	const char *MapName() const { return m_aMapName; }

@@ -5,7 +5,7 @@
 
 void CConsoleNetConnection::Reset()
 {
-	m_State = EState::OFFLINE;
+	m_State = NET_CONNSTATE_OFFLINE;
 	mem_zero(&m_PeerAddr, sizeof(m_PeerAddr));
 	m_aErrorString[0] = 0;
 
@@ -25,24 +25,20 @@ void CConsoleNetConnection::Reset()
 #endif
 }
 
-int CConsoleNetConnection::Init(NETSOCKET Socket, const NETADDR *pAddr)
+void CConsoleNetConnection::Init(NETSOCKET Socket, const NETADDR *pAddr)
 {
 	Reset();
 
-	if(net_set_non_blocking(Socket) != 0)
-	{
-		return -1;
-	}
-
 	m_Socket = Socket;
+	net_set_non_blocking(m_Socket);
+
 	m_PeerAddr = *pAddr;
-	m_State = EState::ONLINE;
-	return 0;
+	m_State = NET_CONNSTATE_ONLINE;
 }
 
 void CConsoleNetConnection::Disconnect(const char *pReason)
 {
-	if(State() == EState::OFFLINE)
+	if(State() == NET_CONNSTATE_OFFLINE)
 		return;
 
 	if(pReason && pReason[0])
@@ -55,11 +51,11 @@ void CConsoleNetConnection::Disconnect(const char *pReason)
 
 int CConsoleNetConnection::Update()
 {
-	if(State() == EState::ONLINE)
+	if(State() == NET_CONNSTATE_ONLINE)
 	{
 		if((int)(sizeof(m_aBuffer)) <= m_BufferOffset)
 		{
-			m_State = EState::ERROR;
+			m_State = NET_CONNSTATE_ERROR;
 			str_copy(m_aErrorString, "too weak connection (out of buffer)");
 			return -1;
 		}
@@ -75,13 +71,13 @@ int CConsoleNetConnection::Update()
 			if(net_would_block()) // no data received
 				return 0;
 
-			m_State = EState::ERROR;
+			m_State = NET_CONNSTATE_ERROR; // error
 			str_copy(m_aErrorString, "connection failure");
 			return -1;
 		}
 		else
 		{
-			m_State = EState::ERROR;
+			m_State = NET_CONNSTATE_ERROR;
 			str_copy(m_aErrorString, "remote end closed the connection");
 			return -1;
 		}
@@ -92,7 +88,7 @@ int CConsoleNetConnection::Update()
 
 int CConsoleNetConnection::Recv(char *pLine, int MaxLength)
 {
-	if(State() == EState::ONLINE)
+	if(State() == NET_CONNSTATE_ONLINE)
 	{
 		if(m_BufferOffset)
 		{
@@ -155,7 +151,7 @@ int CConsoleNetConnection::Recv(char *pLine, int MaxLength)
 
 int CConsoleNetConnection::Send(const char *pLine)
 {
-	if(State() != EState::ONLINE)
+	if(State() != NET_CONNSTATE_ONLINE)
 		return -1;
 
 	char aBuf[1024];
@@ -172,7 +168,7 @@ int CConsoleNetConnection::Send(const char *pLine)
 		int Send = net_tcp_send(m_Socket, pData, Length);
 		if(Send < 0)
 		{
-			m_State = EState::ERROR;
+			m_State = NET_CONNSTATE_ERROR;
 			str_copy(m_aErrorString, "failed to send packet");
 			return -1;
 		}

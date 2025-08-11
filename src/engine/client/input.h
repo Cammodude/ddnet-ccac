@@ -37,6 +37,7 @@ public:
 		CInput *Input() { return m_pInput; }
 
 	public:
+		CJoystick() {}
 		CJoystick(CInput *pInput, int Index, SDL_Joystick *pDelegate);
 		virtual ~CJoystick() = default;
 
@@ -49,11 +50,11 @@ public:
 		int GetNumBalls() const override { return m_NumBalls; }
 		int GetNumHats() const override { return m_NumHats; }
 		float GetAxisValue(int Axis) override;
-		void GetHatValue(int Hat, int (&aHatKeys)[2]) override;
+		void GetHatValue(int Hat, int (&HatKeys)[2]) override;
 		bool Relative(float *pX, float *pY) override;
 		bool Absolute(float *pX, float *pY) override;
 
-		static void GetJoystickHatKeys(int Hat, int HatValue, int (&aHatKeys)[2]);
+		static void GetJoystickHatKeys(int Hat, int HatValue, int (&HatKeys)[2]);
 	};
 
 private:
@@ -149,7 +150,6 @@ public:
 
 	void StartTextInput() override;
 	void StopTextInput() override;
-	void EnsureScreenKeyboardShown() override;
 	const char *GetComposition() const override { return m_CompositionString.c_str(); }
 	bool HasComposition() const override { return !m_CompositionString.empty(); }
 	int GetCompositionCursor() const override { return m_CompositionCursor; }

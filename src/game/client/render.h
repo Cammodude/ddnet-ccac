@@ -91,20 +91,14 @@ public:
 			Sixup.Reset();
 	}
 
+	IGraphics::CTextureHandle m_PlayerPicTexture; // chillerbot-ux
+
 	void Apply(const CSkin *pSkin)
 	{
 		m_OriginalRenderSkin = pSkin->m_OriginalSkin;
 		m_ColorableRenderSkin = pSkin->m_ColorableSkin;
 		m_BloodColor = pSkin->m_BloodColor;
 		m_SkinMetrics = pSkin->m_Metrics;
-	}
-
-	void ApplySkin(const CTeeRenderInfo &TeeRenderInfo)
-	{
-		m_OriginalRenderSkin = TeeRenderInfo.m_OriginalRenderSkin;
-		m_ColorableRenderSkin = TeeRenderInfo.m_ColorableRenderSkin;
-		m_BloodColor = TeeRenderInfo.m_BloodColor;
-		m_SkinMetrics = TeeRenderInfo.m_SkinMetrics;
 	}
 
 	void ApplyColors(bool CustomColoredSkin, int ColorBody, int ColorFeet)
@@ -122,10 +116,10 @@ public:
 		}
 	}
 
-	CSkin::CSkinTextures m_OriginalRenderSkin;
-	CSkin::CSkinTextures m_ColorableRenderSkin;
+	CSkin::SSkinTextures m_OriginalRenderSkin;
+	CSkin::SSkinTextures m_ColorableRenderSkin;
 
-	CSkin::CSkinMetrics m_SkinMetrics;
+	CSkin::SSkinMetrics m_SkinMetrics;
 
 	bool m_CustomColoredSkin;
 	ColorRGBA m_BloodColor;
@@ -221,9 +215,6 @@ enum
 	LAYERRENDERFLAG_TRANSPARENT = 2,
 
 	TILERENDERFLAG_EXTEND = 4,
-
-	OVERLAYRENDERFLAG_TEXT = 1,
-	OVERLAYRENDERFLAG_EDITOR = 2,
 };
 
 class IEnvelopePointAccess
@@ -233,7 +224,6 @@ public:
 	virtual int NumPoints() const = 0;
 	virtual const CEnvPoint *GetPoint(int Index) const = 0;
 	virtual const CEnvPointBezier *GetBezier(int Index) const = 0;
-	int FindPointIndex(int Time) const;
 };
 
 class CMapBasedEnvelopePointAccess : public IEnvelopePointAccess
@@ -265,15 +255,13 @@ class CRenderTools
 
 	int m_TeeQuadContainerIndex;
 
-	vec2 m_SpriteScale = vec2(-1.0f, -1.0f);
-
 	static void GetRenderTeeBodyScale(float BaseSize, float &BodyScale);
 	static void GetRenderTeeFeetScale(float BaseSize, float &FeetScaleWidth, float &FeetScaleHeight);
 
-	void SelectSprite(const CDataSprite *pSprite, int Flags);
+	void SelectSprite(const CDataSprite *pSprite, int Flags) const;
 
 	void RenderTee6(const CAnimState *pAnim, const CTeeRenderInfo *pInfo, int Emote, vec2 Dir, vec2 Pos, float Alpha = 1.0f) const;
-	void RenderTee7(const CAnimState *pAnim, const CTeeRenderInfo *pInfo, int Emote, vec2 Dir, vec2 Pos, float Alpha = 1.0f);
+	void RenderTee7(const CAnimState *pAnim, const CTeeRenderInfo *pInfo, int Emote, vec2 Dir, vec2 Pos, float Alpha = 1.0f) const;
 
 public:
 	class IGraphics *Graphics() const { return m_pGraphics; }
@@ -281,8 +269,8 @@ public:
 
 	void Init(class IGraphics *pGraphics, class ITextRender *pTextRender);
 
-	void SelectSprite(int Id, int Flags = 0);
-	void SelectSprite7(int Id, int Flags = 0);
+	void SelectSprite(int Id, int Flags = 0) const;
+	void SelectSprite7(int Id, int Flags = 0) const;
 
 	void GetSpriteScale(const CDataSprite *pSprite, float &ScaleX, float &ScaleY) const;
 	void GetSpriteScale(int Id, float &ScaleX, float &ScaleY) const;
@@ -291,7 +279,7 @@ public:
 	void DrawSprite(float x, float y, float Size) const;
 	void DrawSprite(float x, float y, float ScaledWidth, float ScaledHeight) const;
 	void RenderCursor(vec2 Center, float Size) const;
-	void RenderIcon(int ImageId, int SpriteId, const CUIRect *pRect, const ColorRGBA *pColor = nullptr);
+	void RenderIcon(int ImageId, int SpriteId, const CUIRect *pRect, const ColorRGBA *pColor = nullptr) const;
 	int QuadContainerAddSprite(int QuadContainerIndex, float x, float y, float Size) const;
 	int QuadContainerAddSprite(int QuadContainerIndex, float Size) const;
 	int QuadContainerAddSprite(int QuadContainerIndex, float Width, float Height) const;
@@ -305,7 +293,7 @@ public:
 	// returns the offset to use, to render the tee with @see RenderTee exactly in the mid
 	static void GetRenderTeeOffsetToRenderedTee(const CAnimState *pAnim, const CTeeRenderInfo *pInfo, vec2 &TeeOffsetToMid);
 	// object render methods
-	void RenderTee(const CAnimState *pAnim, const CTeeRenderInfo *pInfo, int Emote, vec2 Dir, vec2 Pos, float Alpha = 1.0f);
+	void RenderTee(const CAnimState *pAnim, const CTeeRenderInfo *pInfo, int Emote, vec2 Dir, vec2 Pos, float Alpha = 1.0f) const;
 
 	// map render methods (render_map.cpp)
 	static void RenderEvalEnvelope(const IEnvelopePointAccess *pPoints, std::chrono::nanoseconds TimeNanos, ColorRGBA &Result, size_t Channels);
@@ -324,15 +312,16 @@ public:
 	void MapScreenToWorld(float CenterX, float CenterY, float ParallaxX, float ParallaxY,
 		float ParallaxZoom, float OffsetX, float OffsetY, float Aspect, float Zoom, float *pPoints);
 	void MapScreenToGroup(float CenterX, float CenterY, CMapItemGroup *pGroup, float Zoom);
-	void MapScreenToInterface(float CenterX, float CenterY, float Zoom = 1.0f);
+	void MapScreenToInterface(float CenterX, float CenterY);
 
 	// DDRace
 
-	void RenderTeleOverlay(CTeleTile *pTele, int w, int h, float Scale, int OverlayRenderFlags, float Alpha = 1.0f) const;
-	void RenderSpeedupOverlay(CSpeedupTile *pSpeedup, int w, int h, float Scale, int OverlayRenderFlags, float Alpha = 1.0f);
-	void RenderSwitchOverlay(CSwitchTile *pSwitch, int w, int h, float Scale, int OverlayRenderFlags, float Alpha = 1.0f) const;
-	void RenderTuneOverlay(CTuneTile *pTune, int w, int h, float Scale, int OverlayRenderFlags, float Alpha = 1.0f) const;
+	void RenderTeleOverlay(CTeleTile *pTele, int w, int h, float Scale, float Alpha = 1.0f) const;
+	void RenderSpeedupOverlay(CSpeedupTile *pSpeedup, int w, int h, float Scale, float Alpha = 1.0f) const;
+	void RenderSwitchOverlay(CSwitchTile *pSwitch, int w, int h, float Scale, float Alpha = 1.0f) const;
+	void RenderTuneOverlay(CTuneTile *pTune, int w, int h, float Scale, float Alpha = 1.0f) const;
 	void RenderTelemap(CTeleTile *pTele, int w, int h, float Scale, ColorRGBA Color, int RenderFlags) const;
+	void RenderSpeedupmap(CSpeedupTile *pSpeedup, int w, int h, float Scale, ColorRGBA Color, int RenderFlags) const;
 	void RenderSwitchmap(CSwitchTile *pSwitch, int w, int h, float Scale, ColorRGBA Color, int RenderFlags) const;
 	void RenderTunemap(CTuneTile *pTune, int w, int h, float Scale, ColorRGBA Color, int RenderFlags) const;
 };

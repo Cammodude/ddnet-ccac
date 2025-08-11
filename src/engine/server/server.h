@@ -18,6 +18,7 @@
 #include <engine/shared/snapshot.h>
 #include <engine/shared/uuid_manager.h>
 
+#include <list>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -146,7 +147,6 @@ public:
 		int m_LastInputTick;
 		CSnapshotStorage m_Snapshots;
 
-		CNetMsg_Sv_PreInput m_LastPreInput = {};
 		CInput m_LatestInput;
 		CInput m_aInputs[200]; // TODO: handle input better
 		int m_CurrentInput;
@@ -163,7 +163,6 @@ public:
 		int m_Flags;
 		bool m_ShowIps;
 		bool m_DebugDummy;
-		bool m_ForceHighBandwidthOnSpectate;
 		NETADDR m_DebugDummyAddr;
 		std::array<char, NETADDR_MAXSTRSIZE> m_aDebugDummyAddrString;
 		std::array<char, NETADDR_MAXSTRSIZE> m_aDebugDummyAddrStringNoPort;
@@ -184,6 +183,7 @@ public:
 
 		// DDRace
 
+		NETADDR m_Addr;
 		bool m_GotDDNetVersionPacket;
 		bool m_DDNetVersionSettled;
 		int m_DDNetVersion;
@@ -403,9 +403,9 @@ public:
 
 	void ExpireServerInfo() override;
 	void CacheServerInfo(CCache *pCache, int Type, bool SendClients);
-	void CacheServerInfoSixup(CCache *pCache, bool SendClients, int MaxConsideredClients);
+	void CacheServerInfoSixup(CCache *pCache, bool SendClients);
 	void SendServerInfo(const NETADDR *pAddr, int Token, int Type, bool SendClients);
-	void GetServerInfoSixup(CPacker *pPacker, bool SendClients);
+	void GetServerInfoSixup(CPacker *pPacker, int Token, bool SendClients);
 	bool RateLimitServerInfoConnless();
 	void SendServerInfoConnless(const NETADDR *pAddr, int Token, int Type);
 	void UpdateRegisterServerInfo();
@@ -435,7 +435,6 @@ public:
 	static void ConLogout(IConsole::IResult *pResult, void *pUser);
 	static void ConShowIps(IConsole::IResult *pResult, void *pUser);
 	static void ConHideAuthStatus(IConsole::IResult *pResult, void *pUser);
-	static void ConForceHighBandwidthOnSpectate(IConsole::IResult *pResult, void *pUser);
 
 	static void ConAuthAdd(IConsole::IResult *pResult, void *pUser);
 	static void ConAuthAddHashed(IConsole::IResult *pResult, void *pUser);
@@ -467,7 +466,6 @@ public:
 	static void ConchainLoglevel(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainStdoutOutputLevel(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainAnnouncementFileName(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
-	static void ConchainInputFifo(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 
 #if defined(CONF_FAMILY_UNIX)
 	static void ConchainConnLoggingServerChange(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
@@ -532,8 +530,6 @@ public:
 	void SendConnLoggingCommand(CONN_LOGGING_CMD Cmd, const NETADDR *pAddr);
 #endif
 };
-
-bool IsInterrupted();
 
 extern CServer *CreateServer();
 #endif

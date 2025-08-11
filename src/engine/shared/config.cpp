@@ -2,7 +2,6 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 
 #include <base/log.h>
-#include <base/system.h>
 
 #include <engine/config.h>
 #include <engine/shared/config.h>
@@ -362,7 +361,9 @@ void CConfigManager::SetReadOnly(const char *pScriptName, bool ReadOnly)
 			return;
 		}
 	}
-	dbg_assert(false, "Invalid command for SetReadOnly: '%s'", pScriptName);
+	char aBuf[IConsole::CMDLINE_LENGTH + 32];
+	str_format(aBuf, sizeof(aBuf), "Invalid command for SetReadOnly: '%s'", pScriptName);
+	dbg_assert(false, aBuf);
 }
 
 bool CConfigManager::Save()

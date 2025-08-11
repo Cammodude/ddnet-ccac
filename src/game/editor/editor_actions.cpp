@@ -350,7 +350,6 @@ CEditorActionEditQuadProp::CEditorActionEditQuadProp(CEditor *pEditor, int Group
 		"pos env offset",
 		"color env",
 		"color env offset"};
-	static_assert(std::size(s_apNames) == (size_t)EQuadProp::NUM_PROPS);
 	str_format(m_aDisplayText, sizeof(m_aDisplayText), "Edit quad %s property in layer %d of group %d", s_apNames[(int)m_Prop], m_LayerIndex, m_GroupIndex);
 }
 
@@ -387,7 +386,6 @@ CEditorActionEditQuadPointProp::CEditorActionEditQuadPointProp(CEditor *pEditor,
 		"color",
 		"tex U",
 		"tex V"};
-	static_assert(std::size(s_apNames) == (size_t)EQuadPointProp::NUM_PROPS);
 	str_format(m_aDisplayText, sizeof(m_aDisplayText), "Edit quad point %s property in layer %d of group %d", s_apNames[(int)m_Prop], m_LayerIndex, m_GroupIndex);
 }
 
@@ -453,8 +451,7 @@ void CEditorActionBulk::Undo()
 {
 	if(m_Reverse)
 	{
-		// reverse_view is not supported in gcc 10
-		for(auto pIt = m_vpActions.rbegin(); pIt != m_vpActions.rend(); pIt++) // NOLINT: modernize-loop-convert
+		for(auto pIt = m_vpActions.rbegin(); pIt != m_vpActions.rend(); pIt++)
 		{
 			auto &pAction = *pIt;
 			pAction->Undo();
@@ -546,15 +543,15 @@ void CEditorActionAddLayer::Undo()
 	if(m_pLayer->m_Type == LAYERTYPE_TILES)
 	{
 		std::shared_ptr<CLayerTiles> pLayerTiles = std::static_pointer_cast<CLayerTiles>(m_pLayer);
-		if(pLayerTiles->m_HasFront)
+		if(pLayerTiles->m_Front)
 			m_pEditor->m_Map.m_pFrontLayer = nullptr;
-		else if(pLayerTiles->m_HasTele)
+		else if(pLayerTiles->m_Tele)
 			m_pEditor->m_Map.m_pTeleLayer = nullptr;
-		else if(pLayerTiles->m_HasSpeedup)
+		else if(pLayerTiles->m_Speedup)
 			m_pEditor->m_Map.m_pSpeedupLayer = nullptr;
-		else if(pLayerTiles->m_HasSwitch)
+		else if(pLayerTiles->m_Switch)
 			m_pEditor->m_Map.m_pSwitchLayer = nullptr;
-		else if(pLayerTiles->m_HasTune)
+		else if(pLayerTiles->m_Tune)
 			m_pEditor->m_Map.m_pTuneLayer = nullptr;
 	}
 
@@ -575,15 +572,15 @@ void CEditorActionAddLayer::Redo()
 	if(m_pLayer->m_Type == LAYERTYPE_TILES)
 	{
 		std::shared_ptr<CLayerTiles> pLayerTiles = std::static_pointer_cast<CLayerTiles>(m_pLayer);
-		if(pLayerTiles->m_HasFront)
+		if(pLayerTiles->m_Front)
 			m_pEditor->m_Map.m_pFrontLayer = std::static_pointer_cast<CLayerFront>(m_pLayer);
-		else if(pLayerTiles->m_HasTele)
+		else if(pLayerTiles->m_Tele)
 			m_pEditor->m_Map.m_pTeleLayer = std::static_pointer_cast<CLayerTele>(m_pLayer);
-		else if(pLayerTiles->m_HasSpeedup)
+		else if(pLayerTiles->m_Speedup)
 			m_pEditor->m_Map.m_pSpeedupLayer = std::static_pointer_cast<CLayerSpeedup>(m_pLayer);
-		else if(pLayerTiles->m_HasSwitch)
+		else if(pLayerTiles->m_Switch)
 			m_pEditor->m_Map.m_pSwitchLayer = std::static_pointer_cast<CLayerSwitch>(m_pLayer);
-		else if(pLayerTiles->m_HasTune)
+		else if(pLayerTiles->m_Tune)
 			m_pEditor->m_Map.m_pTuneLayer = std::static_pointer_cast<CLayerTune>(m_pLayer);
 	}
 
@@ -608,15 +605,15 @@ void CEditorActionDeleteLayer::Redo()
 	if(m_pLayer->m_Type == LAYERTYPE_TILES)
 	{
 		std::shared_ptr<CLayerTiles> pLayerTiles = std::static_pointer_cast<CLayerTiles>(m_pLayer);
-		if(pLayerTiles->m_HasFront)
+		if(pLayerTiles->m_Front)
 			m_pEditor->m_Map.m_pFrontLayer = nullptr;
-		else if(pLayerTiles->m_HasTele)
+		else if(pLayerTiles->m_Tele)
 			m_pEditor->m_Map.m_pTeleLayer = nullptr;
-		else if(pLayerTiles->m_HasSpeedup)
+		else if(pLayerTiles->m_Speedup)
 			m_pEditor->m_Map.m_pSpeedupLayer = nullptr;
-		else if(pLayerTiles->m_HasSwitch)
+		else if(pLayerTiles->m_Switch)
 			m_pEditor->m_Map.m_pSwitchLayer = nullptr;
-		else if(pLayerTiles->m_HasTune)
+		else if(pLayerTiles->m_Tune)
 			m_pEditor->m_Map.m_pTuneLayer = nullptr;
 	}
 
@@ -637,15 +634,15 @@ void CEditorActionDeleteLayer::Undo()
 	if(m_pLayer->m_Type == LAYERTYPE_TILES)
 	{
 		std::shared_ptr<CLayerTiles> pLayerTiles = std::static_pointer_cast<CLayerTiles>(m_pLayer);
-		if(pLayerTiles->m_HasFront)
+		if(pLayerTiles->m_Front)
 			m_pEditor->m_Map.m_pFrontLayer = std::static_pointer_cast<CLayerFront>(m_pLayer);
-		else if(pLayerTiles->m_HasTele)
+		else if(pLayerTiles->m_Tele)
 			m_pEditor->m_Map.m_pTeleLayer = std::static_pointer_cast<CLayerTele>(m_pLayer);
-		else if(pLayerTiles->m_HasSpeedup)
+		else if(pLayerTiles->m_Speedup)
 			m_pEditor->m_Map.m_pSpeedupLayer = std::static_pointer_cast<CLayerSpeedup>(m_pLayer);
-		else if(pLayerTiles->m_HasSwitch)
+		else if(pLayerTiles->m_Switch)
 			m_pEditor->m_Map.m_pSwitchLayer = std::static_pointer_cast<CLayerSwitch>(m_pLayer);
-		else if(pLayerTiles->m_HasTune)
+		else if(pLayerTiles->m_Tune)
 			m_pEditor->m_Map.m_pTuneLayer = std::static_pointer_cast<CLayerTune>(m_pLayer);
 	}
 
@@ -717,7 +714,6 @@ CEditorActionEditGroupProp::CEditorActionEditGroupProp(CEditor *pEditor, int Gro
 		"clip Y",
 		"clip W",
 		"clip H"};
-	static_assert(std::size(s_apNames) == (size_t)EGroupProp::NUM_PROPS);
 
 	str_format(m_aDisplayText, sizeof(m_aDisplayText), "Edit group %d %s property", m_GroupIndex, s_apNames[(int)Prop]);
 }
@@ -728,7 +724,13 @@ void CEditorActionEditGroupProp::Undo()
 
 	if(m_Prop == EGroupProp::PROP_ORDER)
 	{
-		m_pEditor->m_SelectedGroup = m_pEditor->m_Map.MoveGroup(m_Current, m_Previous);
+		int CurrentOrder = m_Current;
+		bool Dir = m_Current > m_Previous;
+		while(CurrentOrder != m_Previous)
+		{
+			CurrentOrder = m_pEditor->m_Map.SwapGroups(CurrentOrder, Dir ? CurrentOrder - 1 : CurrentOrder + 1);
+		}
+		m_pEditor->m_SelectedGroup = m_Previous;
 	}
 	else
 		Apply(m_Previous);
@@ -740,7 +742,13 @@ void CEditorActionEditGroupProp::Redo()
 
 	if(m_Prop == EGroupProp::PROP_ORDER)
 	{
-		m_pEditor->m_SelectedGroup = m_pEditor->m_Map.MoveGroup(m_Previous, m_Current);
+		int CurrentOrder = m_Previous;
+		bool Dir = m_Previous > m_Current;
+		while(CurrentOrder != m_Current)
+		{
+			CurrentOrder = m_pEditor->m_Map.SwapGroups(CurrentOrder, Dir ? CurrentOrder - 1 : CurrentOrder + 1);
+		}
+		m_pEditor->m_SelectedGroup = m_Current;
 	}
 	else
 		Apply(m_Current);
@@ -785,7 +793,6 @@ CEditorActionEditLayerProp::CEditorActionEditLayerProp(CEditor *pEditor, int Gro
 		"group",
 		"order",
 		"HQ"};
-	static_assert(std::size(s_apNames) == (size_t)ELayerProp::NUM_PROPS);
 
 	str_format(m_aDisplayText, sizeof(m_aDisplayText), "Edit layer %d in group %d %s property", m_LayerIndex, m_GroupIndex, s_apNames[(int)m_Prop]);
 }
@@ -796,7 +803,7 @@ void CEditorActionEditLayerProp::Undo()
 
 	if(m_Prop == ELayerProp::PROP_ORDER)
 	{
-		m_pEditor->SelectLayer(pCurrentGroup->MoveLayer(m_Current, m_Previous));
+		m_pEditor->SelectLayer(pCurrentGroup->SwapLayers(m_Current, m_Previous));
 	}
 	else
 		Apply(m_Previous);
@@ -808,7 +815,7 @@ void CEditorActionEditLayerProp::Redo()
 
 	if(m_Prop == ELayerProp::PROP_ORDER)
 	{
-		m_pEditor->SelectLayer(pCurrentGroup->MoveLayer(m_Previous, m_Current));
+		m_pEditor->SelectLayer(pCurrentGroup->SwapLayers(m_Previous, m_Current));
 	}
 	else
 		Apply(m_Current);
@@ -849,10 +856,7 @@ CEditorActionEditLayerTilesProp::CEditorActionEditLayerTilesProp(CEditor *pEdito
 		"color env",
 		"color env offset",
 		"automapper",
-		"automapper reference",
-		"live gametiles",
 		"seed"};
-	static_assert(std::size(s_apNames) == (size_t)ETilesProp::NUM_PROPS);
 
 	str_format(m_aDisplayText, sizeof(m_aDisplayText), "Edit tiles layer %d in group %d %s property", m_LayerIndex, m_GroupIndex, s_apNames[(int)Prop]);
 }
@@ -875,19 +879,19 @@ void CEditorActionEditLayerTilesProp::Undo()
 			pLayerTiles->Resize(m_Previous, pLayerTiles->m_Height);
 
 		RestoreLayer(LAYERTYPE_TILES, pLayerTiles);
-		if(pLayerTiles->m_HasGame || pLayerTiles->m_HasFront || pLayerTiles->m_HasSwitch || pLayerTiles->m_HasSpeedup || pLayerTiles->m_HasTune)
+		if(pLayerTiles->m_Game || pLayerTiles->m_Front || pLayerTiles->m_Switch || pLayerTiles->m_Speedup || pLayerTiles->m_Tune)
 		{
-			if(m_pEditor->m_Map.m_pFrontLayer && !pLayerTiles->m_HasFront)
+			if(m_pEditor->m_Map.m_pFrontLayer && !pLayerTiles->m_Front)
 				RestoreLayer(LAYERTYPE_FRONT, m_pEditor->m_Map.m_pFrontLayer);
-			if(m_pEditor->m_Map.m_pTeleLayer && !pLayerTiles->m_HasTele)
+			if(m_pEditor->m_Map.m_pTeleLayer && !pLayerTiles->m_Tele)
 				RestoreLayer(LAYERTYPE_TELE, m_pEditor->m_Map.m_pTeleLayer);
-			if(m_pEditor->m_Map.m_pSwitchLayer && !pLayerTiles->m_HasSwitch)
+			if(m_pEditor->m_Map.m_pSwitchLayer && !pLayerTiles->m_Switch)
 				RestoreLayer(LAYERTYPE_SWITCH, m_pEditor->m_Map.m_pSwitchLayer);
-			if(m_pEditor->m_Map.m_pSpeedupLayer && !pLayerTiles->m_HasSpeedup)
+			if(m_pEditor->m_Map.m_pSpeedupLayer && !pLayerTiles->m_Speedup)
 				RestoreLayer(LAYERTYPE_SPEEDUP, m_pEditor->m_Map.m_pSpeedupLayer);
-			if(m_pEditor->m_Map.m_pTuneLayer && !pLayerTiles->m_HasTune)
+			if(m_pEditor->m_Map.m_pTuneLayer && !pLayerTiles->m_Tune)
 				RestoreLayer(LAYERTYPE_TUNE, m_pEditor->m_Map.m_pTuneLayer);
-			if(!pLayerTiles->m_HasGame)
+			if(!pLayerTiles->m_Game)
 				RestoreLayer(LAYERTYPE_GAME, m_pEditor->m_Map.m_pGameLayer);
 		}
 	}
@@ -936,10 +940,6 @@ void CEditorActionEditLayerTilesProp::Undo()
 	{
 		pLayerTiles->m_AutoMapperConfig = m_Previous;
 	}
-	else if(m_Prop == ETilesProp::PROP_LIVE_GAMETILES)
-	{
-		pLayerTiles->m_LiveGameTiles = m_Previous;
-	}
 	else if(m_Prop == ETilesProp::PROP_SEED)
 	{
 		pLayerTiles->m_Seed = m_Previous;
@@ -959,19 +959,19 @@ void CEditorActionEditLayerTilesProp::Redo()
 		else if(m_Prop == ETilesProp::PROP_WIDTH)
 			pLayerTiles->Resize(m_Current, pLayerTiles->m_Height);
 
-		if(pLayerTiles->m_HasGame || pLayerTiles->m_HasFront || pLayerTiles->m_HasSwitch || pLayerTiles->m_HasSpeedup || pLayerTiles->m_HasTune)
+		if(pLayerTiles->m_Game || pLayerTiles->m_Front || pLayerTiles->m_Switch || pLayerTiles->m_Speedup || pLayerTiles->m_Tune)
 		{
-			if(m_pEditor->m_Map.m_pFrontLayer && !pLayerTiles->m_HasFront)
+			if(m_pEditor->m_Map.m_pFrontLayer && !pLayerTiles->m_Front)
 				m_pEditor->m_Map.m_pFrontLayer->Resize(pLayerTiles->m_Width, pLayerTiles->m_Height);
-			if(m_pEditor->m_Map.m_pTeleLayer && !pLayerTiles->m_HasTele)
+			if(m_pEditor->m_Map.m_pTeleLayer && !pLayerTiles->m_Tele)
 				m_pEditor->m_Map.m_pTeleLayer->Resize(pLayerTiles->m_Width, pLayerTiles->m_Height);
-			if(m_pEditor->m_Map.m_pSwitchLayer && !pLayerTiles->m_HasSwitch)
+			if(m_pEditor->m_Map.m_pSwitchLayer && !pLayerTiles->m_Switch)
 				m_pEditor->m_Map.m_pSwitchLayer->Resize(pLayerTiles->m_Width, pLayerTiles->m_Height);
-			if(m_pEditor->m_Map.m_pSpeedupLayer && !pLayerTiles->m_HasSpeedup)
+			if(m_pEditor->m_Map.m_pSpeedupLayer && !pLayerTiles->m_Speedup)
 				m_pEditor->m_Map.m_pSpeedupLayer->Resize(pLayerTiles->m_Width, pLayerTiles->m_Height);
-			if(m_pEditor->m_Map.m_pTuneLayer && !pLayerTiles->m_HasTune)
+			if(m_pEditor->m_Map.m_pTuneLayer && !pLayerTiles->m_Tune)
 				m_pEditor->m_Map.m_pTuneLayer->Resize(pLayerTiles->m_Width, pLayerTiles->m_Height);
-			if(!pLayerTiles->m_HasGame)
+			if(!pLayerTiles->m_Game)
 				m_pEditor->m_Map.m_pGameLayer->Resize(pLayerTiles->m_Width, pLayerTiles->m_Height);
 		}
 	}
@@ -1020,10 +1020,6 @@ void CEditorActionEditLayerTilesProp::Redo()
 	{
 		pLayerTiles->m_AutoMapperConfig = m_Current;
 	}
-	else if(m_Prop == ETilesProp::PROP_LIVE_GAMETILES)
-	{
-		pLayerTiles->m_LiveGameTiles = m_Current;
-	}
 	else if(m_Prop == ETilesProp::PROP_SEED)
 	{
 		pLayerTiles->m_Seed = m_Current;
@@ -1039,25 +1035,25 @@ void CEditorActionEditLayerTilesProp::RestoreLayer(int Layer, const std::shared_
 		std::shared_ptr<CLayerTiles> pSavedLayerTiles = std::static_pointer_cast<CLayerTiles>(m_SavedLayers[Layer]);
 		mem_copy(pLayerTiles->m_pTiles, pSavedLayerTiles->m_pTiles, (size_t)pLayerTiles->m_Width * pLayerTiles->m_Height * sizeof(CTile));
 
-		if(pLayerTiles->m_HasTele)
+		if(pLayerTiles->m_Tele)
 		{
 			std::shared_ptr<CLayerTele> pLayerTele = std::static_pointer_cast<CLayerTele>(pLayerTiles);
 			std::shared_ptr<CLayerTele> pSavedLayerTele = std::static_pointer_cast<CLayerTele>(pSavedLayerTiles);
 			mem_copy(pLayerTele->m_pTeleTile, pSavedLayerTele->m_pTeleTile, (size_t)pLayerTiles->m_Width * pLayerTiles->m_Height * sizeof(CTeleTile));
 		}
-		else if(pLayerTiles->m_HasSpeedup)
+		else if(pLayerTiles->m_Speedup)
 		{
 			std::shared_ptr<CLayerSpeedup> pLayerSpeedup = std::static_pointer_cast<CLayerSpeedup>(pLayerTiles);
 			std::shared_ptr<CLayerSpeedup> pSavedLayerSpeedup = std::static_pointer_cast<CLayerSpeedup>(pSavedLayerTiles);
 			mem_copy(pLayerSpeedup->m_pSpeedupTile, pSavedLayerSpeedup->m_pSpeedupTile, (size_t)pLayerTiles->m_Width * pLayerTiles->m_Height * sizeof(CSpeedupTile));
 		}
-		else if(pLayerTiles->m_HasSwitch)
+		else if(pLayerTiles->m_Switch)
 		{
 			std::shared_ptr<CLayerSwitch> pLayerSwitch = std::static_pointer_cast<CLayerSwitch>(pLayerTiles);
 			std::shared_ptr<CLayerSwitch> pSavedLayerSwitch = std::static_pointer_cast<CLayerSwitch>(pSavedLayerTiles);
 			mem_copy(pLayerSwitch->m_pSwitchTile, pSavedLayerSwitch->m_pSwitchTile, (size_t)pLayerTiles->m_Width * pLayerTiles->m_Height * sizeof(CSwitchTile));
 		}
-		else if(pLayerTiles->m_HasTune)
+		else if(pLayerTiles->m_Tune)
 		{
 			std::shared_ptr<CLayerTune> pLayerTune = std::static_pointer_cast<CLayerTune>(pLayerTiles);
 			std::shared_ptr<CLayerTune> pSavedLayerTune = std::static_pointer_cast<CLayerTune>(pSavedLayerTiles);
@@ -1071,7 +1067,6 @@ CEditorActionEditLayerQuadsProp::CEditorActionEditLayerQuadsProp(CEditor *pEdito
 {
 	static const char *s_apNames[] = {
 		"image"};
-	static_assert(std::size(s_apNames) == (size_t)ELayerQuadsProp::NUM_PROPS);
 	str_format(m_aDisplayText, sizeof(m_aDisplayText), "Edit quads layer %d in group %d %s property", m_LayerIndex, m_GroupIndex, s_apNames[(int)m_Prop]);
 }
 
@@ -1290,35 +1285,6 @@ void CEditorActionTileArt::Redo()
 	m_pEditor->AddTileart(true);
 }
 
-// ---------------------------
-
-CEditorActionQuadArt::CEditorActionQuadArt(CEditor *pEditor, CQuadArtParameters Parameters) :
-	IEditorAction(pEditor), m_Parameters(Parameters)
-{
-	str_copy(m_aDisplayText, "Create Quadart");
-}
-
-void CEditorActionQuadArt::Undo()
-{
-	auto &Map = m_pEditor->m_Map;
-
-	// Delete added group
-	Map.m_vpGroups.pop_back();
-}
-
-void CEditorActionQuadArt::Redo()
-{
-	m_pEditor->m_QuadArtParameters = m_Parameters;
-	str_copy(m_pEditor->m_QuadArtParameters.m_aFilename, m_Parameters.m_aFilename, sizeof(m_pEditor->m_QuadArtParameters.m_aFilename));
-
-	if(!m_pEditor->Graphics()->LoadPng(m_pEditor->m_QuadArtImageInfo, m_pEditor->m_QuadArtParameters.m_aFilename, IStorage::TYPE_ALL))
-	{
-		m_pEditor->ShowFileDialogError("Failed to load image from file '%s'.", m_pEditor->m_QuadArtParameters.m_aFilename);
-		return;
-	}
-	m_pEditor->AddQuadArt(true);
-}
-
 // ---------------------------------
 
 CEditorCommandAction::CEditorCommandAction(CEditor *pEditor, EType Type, int *pSelectedCommandIndex, int CommandIndex, const char *pPreviousCommand, const char *pCurrentCommand) :
@@ -1486,7 +1452,7 @@ void CEditorActionEnvelopeEdit::Undo()
 	{
 	case EEditType::ORDER:
 	{
-		m_pEditor->m_Map.MoveEnvelope(m_Current, m_Previous);
+		m_pEditor->m_Map.SwapEnvelopes(m_Current, m_Previous);
 		break;
 	}
 	case EEditType::SYNC:
@@ -1505,7 +1471,7 @@ void CEditorActionEnvelopeEdit::Redo()
 	{
 	case EEditType::ORDER:
 	{
-		m_pEditor->m_Map.MoveEnvelope(m_Previous, m_Current);
+		m_pEditor->m_Map.SwapEnvelopes(m_Previous, m_Current);
 		break;
 	}
 	case EEditType::SYNC:
@@ -1603,7 +1569,7 @@ void CEditorActionEditEnvelopePointValue::Apply(bool Undo)
 	else
 	{
 		if(pEnvelope->GetChannels() == 1 || pEnvelope->GetChannels() == 4)
-			CurrentValue = std::clamp(CurrentValue, 0.0f, 1.0f);
+			CurrentValue = clamp(CurrentValue, 0.0f, 1.0f);
 		pEnvelope->m_vPoints[m_PtIndex].m_aValues[m_Channel] = f2fx(CurrentValue);
 
 		if(m_PtIndex != 0)
@@ -1746,7 +1712,6 @@ CEditorActionEditLayerSoundsProp::CEditorActionEditLayerSoundsProp(CEditor *pEdi
 {
 	static const char *s_apNames[] = {
 		"sound"};
-	static_assert(std::size(s_apNames) == (size_t)ELayerSoundsProp::NUM_PROPS);
 	str_format(m_aDisplayText, sizeof(m_aDisplayText), "Edit sounds layer %d in group %d %s property", m_LayerIndex, m_GroupIndex, s_apNames[(int)m_Prop]);
 }
 
@@ -1924,7 +1889,6 @@ CEditorActionEditSoundSourceProp::CEditorActionEditSoundSourceProp(CEditor *pEdi
 		"pos env offset",
 		"sound env",
 		"sound env offset"};
-	static_assert(std::size(s_apNames) == (size_t)ESoundProp::NUM_PROPS);
 	str_format(m_aDisplayText, sizeof(m_aDisplayText), "Edit sound source %d in layer %d of group %d %s property", SourceIndex, LayerIndex, GroupIndex, s_apNames[(int)Prop]);
 }
 
@@ -1993,7 +1957,6 @@ CEditorActionEditRectSoundSourceShapeProp::CEditorActionEditRectSoundSourceShape
 	static const char *s_apNames[] = {
 		"width",
 		"height"};
-	static_assert(std::size(s_apNames) == (size_t)ERectangleShapeProp::NUM_PROPS);
 	str_format(m_aDisplayText, sizeof(m_aDisplayText), "Edit sound source %d in layer %d of group %d sound shape %s property", m_SourceIndex, m_LayerIndex, m_GroupIndex, s_apNames[(int)Prop]);
 }
 
@@ -2029,7 +1992,6 @@ CEditorActionEditCircleSoundSourceShapeProp::CEditorActionEditCircleSoundSourceS
 {
 	static const char *s_apNames[] = {
 		"radius"};
-	static_assert(std::size(s_apNames) == (size_t)ECircleShapeProp::NUM_PROPS);
 	str_format(m_aDisplayText, sizeof(m_aDisplayText), "Edit sound source %d in layer %d of group %d sound shape %s property", m_SourceIndex, m_LayerIndex, m_GroupIndex, s_apNames[(int)Prop]);
 }
 

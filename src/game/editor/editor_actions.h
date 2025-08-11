@@ -9,8 +9,8 @@ class CEditorActionLayerBase : public IEditorAction
 public:
 	CEditorActionLayerBase(CEditor *pEditor, int GroupIndex, int LayerIndex);
 
-	void Undo() override {}
-	void Redo() override {}
+	virtual void Undo() override {}
+	virtual void Redo() override {}
 
 protected:
 	int m_GroupIndex;
@@ -231,8 +231,8 @@ class CEditorActionEditLayerPropBase : public CEditorActionLayerBase
 public:
 	CEditorActionEditLayerPropBase(CEditor *pEditor, int GroupIndex, int LayerIndex, E Prop, int Previous, int Current);
 
-	void Undo() override {}
-	void Redo() override {}
+	virtual void Undo() override {}
+	virtual void Redo() override {}
 
 protected:
 	E m_Prop;
@@ -334,20 +334,6 @@ private:
 	int m_PreviousImageCount;
 	char m_aTileArtFile[IO_MAX_PATH_LENGTH];
 	std::vector<int> m_vImageIndexMap;
-};
-
-// --------------
-
-class CEditorActionQuadArt : public IEditorAction
-{
-public:
-	CEditorActionQuadArt(CEditor *pEditor, CQuadArtParameters Parameters);
-
-	void Undo() override;
-	void Redo() override;
-
-private:
-	CQuadArtParameters m_Parameters;
 };
 
 // ----------------------

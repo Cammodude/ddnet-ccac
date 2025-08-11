@@ -72,7 +72,11 @@ void log_set_scope_logger(ILogger *logger)
 	}
 }
 
-[[gnu::format(printf, 5, 0)]] static void log_log_impl(LEVEL level, bool have_color, LOG_COLOR color, const char *sys, const char *fmt, va_list args)
+// Separate declaration, as attributes are not allowed on function definitions
+void log_log_impl(LEVEL level, bool have_color, LOG_COLOR color, const char *sys, const char *fmt, va_list args)
+	GNUC_ATTRIBUTE((format(printf, 5, 0)));
+
+void log_log_impl(LEVEL level, bool have_color, LOG_COLOR color, const char *sys, const char *fmt, va_list args)
 {
 	// Make sure we're not logging recursively.
 	if(in_logger)
@@ -379,9 +383,14 @@ static IOHANDLE ConvertWindowsHandle(HANDLE pHandle, int OpenFlags)
 }
 #endif
 
+#include "chillerbot/terminalui_logger.h"
+
 std::unique_ptr<ILogger> log_logger_stdout()
 {
-#if !defined(CONF_FAMILY_WINDOWS)
+#if defined(CONF_CURSES_CLIENT)
+	const bool colors = getenv("NO_COLOR") == nullptr && isatty(STDOUT_FILENO);
+	return std::make_unique<CTerminalUILogger>(io_stdout(), colors, false);
+#elif !defined(CONF_FAMILY_WINDOWS)
 	// TODO: Only enable true color when COLORTERM contains "truecolor".
 	// https://github.com/termstandard/colors/tree/65bf0cd1ece7c15fa33a17c17528b02c99f1ae0b#checking-for-colorterm
 	const bool Colors = getenv("NO_COLOR") == nullptr && isatty(STDOUT_FILENO);
@@ -492,11 +501,6 @@ std::unique_ptr<ILogger> log_logger_noop()
 	return std::make_unique<CLoggerNoOp>();
 }
 
-#ifdef __GNUC__
-// atomic_compare_exchange_strong_explicit is deprecated
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
 void CFutureLogger::Set(std::shared_ptr<ILogger> pLogger)
 {
 	const CLockScope LockScope(m_PendingLock);
@@ -550,10 +554,6 @@ void CFutureLogger::OnFilterChange()
 		pLogger->SetFilter(m_Filter);
 	}
 }
-
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
 
 void CMemoryLogger::Log(const CLogMessage *pMessage)
 {

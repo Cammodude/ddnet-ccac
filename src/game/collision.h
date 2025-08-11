@@ -33,6 +33,10 @@ struct CAntibotMapData;
 class CCollision
 {
 public:
+	// chillerbot-ux START
+	void ModifyTile(int x, int y, int Group, int Layer, int Index, int Flags);
+	// chillerbot-ux END
+
 	CCollision();
 	~CCollision();
 
@@ -110,7 +114,7 @@ public:
 
 	int MoverSpeed(int x, int y, vec2 *pSpeed) const;
 
-	const CLayers *Layers() const { return m_pLayers; }
+	CLayers *Layers() const { return m_pLayers; } // chillerbot-ux non const for minetee
 	const CTile *GameLayer() const { return m_pTiles; }
 	const CTeleTile *TeleLayer() const { return m_pTele; }
 	const CSpeedupTile *SpeedupLayer() const { return m_pSpeedup; }

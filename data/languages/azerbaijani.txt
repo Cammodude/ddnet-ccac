@@ -739,6 +739,9 @@ may cause delay
 Screen
 == Ekran
 
+Use high DPI
+== Yüksək DPI istifadə et 
+
 Enable game sounds
 == Oyun səsini aktivləşdirin
 
@@ -856,6 +859,9 @@ AntiPing: predict grenade paths
 Show other players' hook collision lines
 == Show other players' hook collision lines
 
+Show other players' key presses
+== Show other players' key presses
+
 Show tiles layers from BG map
 == Show tiles layers from BG map
 
@@ -934,6 +940,10 @@ https://wiki.ddnet.org/
 [Graphics error]
 Failed during initialization. Try to change gfx_backend to OpenGL or Vulkan in settings_ddnet.cfg in the config directory and try again.
 == Failed during initialization. Try to change gfx_backend to OpenGL or Vulkan in settings_ddnet.cfg in the config directory and try again.
+
+[Graphics error]
+Out of VRAM. Try removing custom assets (skins, entities, etc.), especially those with high resolution.
+== Out of VRAM. Try removing custom assets (skins, entities, etc.), especially those with high resolution.
 
 [Graphics error]
 An error during command recording occurred. Try to update your GPU drivers.
@@ -1446,6 +1456,9 @@ Use old chat style
 Preview
 == Önizləmə
 
+Show local player's key presses
+== Yerli oyunçunun düymə basmalarını göstərin
+
 Hook collision line
 == Qarmaq izi
 
@@ -1604,12 +1617,12 @@ Go back the specified duration
 == Verilən zaman qədər geri qayıt
 
 [Demo player duration]
-%s min.
-== %s dəq.
+%d min.
+== %d dəq.
 
 [Demo player duration]
-%s sec.
-== %s san.
+%d sec.
+== %d san.
 
 Change the skip duration
 == Keçiləcək zamanı dəyişdir
@@ -1772,6 +1785,9 @@ Player info change cooldown
 
 Always show chat
 == Həmişə söhbəti göstərin
+
+Show friend mark (♥) in name plates
+== İstifadəçi adlarında dostluq simvolunu (♥️) göstər
 
 Show hook strength icon indicator
 == Qarmaq gücü işarəsi göstəricisini göstər
@@ -2008,6 +2024,9 @@ Active: Hook
 "%s" is not compatible with pnglite and cannot be loaded by old DDNet versions:
 == "%s" pnglite ilə uyğun gəlmir və köhnə DDnet versiyaları tərəfindən yüklənə bilmir.
 
+Loading background map
+== Fon xəritəsi yüklənir
+
 [Spectating Camera Mode Icon]
 AUTO
 == AVTOMATİK
@@ -2110,106 +2129,3 @@ English translation by the DDNet Team
 
 Show spectator cursor
 == Tamaşaçı kursorunu göstər
-
-[Graphics error]
-Out of VRAM. Try setting 'cl_skins_loaded_max' to a lower value or remove custom assets (skins, entities, etc.), especially those with high resolution.
-== 
-
-No demo with this filename exists
-== 
-
-[Spectating]
-Following %d: %s
-== 
-
-Loading map
-== 
-
-This name cannot be used for files and folders
-== 
-
-Error checking player name
-== 
-
-Could not check for existing player with your name. Check your internet connection.
-== 
-
-Map size
-== 
-
-This skin name cannot be used.
-== 
-
-Skin could not be loaded due to an error. Check the local console for details.
-== 
-
-Skin could not be found.
-== 
-
-No skins match your filter criteria
-== 
-
-Show number of spectators
-== 
-
-[Show name plates]
-None
-== 
-
-[Show name plates]
-Own
-== 
-
-[Show name plates]
-Others
-== 
-
-[Show name plates]
-All
-== 
-
-Name plates offset
-== 
-
-Show friend icon in name plates
-== 
-
-Show client IDs on a seperate line
-== 
-
-Client IDs size
-== 
-
-Show players' key presses
-== 
-
-[Show players' key presses]
-None
-== 
-
-[Show players' key presses]
-Own
-== 
-
-[Show players' key presses]
-Others
-== 
-
-[Show players' key presses]
-All
-== 
-
-Preview player's name plate
-== 
-
-Preview dummy's name plate
-== 
-
-Dragger Outline Color
-== 
-
-Dragger Inner Color
-== 
-
-AntiPing: prediction margin
-== 

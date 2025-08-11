@@ -2,8 +2,6 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include "config.h"
 #include "network.h"
-
-#include <base/log.h>
 #include <base/system.h>
 
 void CNetConnection::SetPeerAddr(const NETADDR *pAddr)
@@ -22,7 +20,7 @@ void CNetConnection::ClearPeerAddr()
 
 void CNetConnection::ResetStats()
 {
-	m_Stats = {};
+	mem_zero(&m_Stats, sizeof(m_Stats));
 	ClearPeerAddr();
 	m_LastUpdateTime = 0;
 }
@@ -39,7 +37,7 @@ void CNetConnection::Reset(bool Rejoin)
 		m_TimeoutProtected = false;
 		m_TimeoutSituation = false;
 
-		m_State = EState::OFFLINE;
+		m_State = NET_CONNSTATE_OFFLINE;
 		m_Token = -1;
 		m_SecurityToken = NET_SECURITY_TOKEN_UNKNOWN;
 		m_Sixup = false;
@@ -99,13 +97,9 @@ void CNetConnection::SignalResend()
 
 int CNetConnection::Flush()
 {
-	// Only flush the connection if there is at least one chunk to flush,
-	// or if a resend should be signaled.
-	const int NumChunks = m_Construct.m_NumChunks;
-	if(!NumChunks && (m_Construct.m_Flags & NET_PACKETFLAG_RESEND) == 0)
-	{
+	int NumChunks = m_Construct.m_NumChunks;
+	if(!NumChunks && !m_Construct.m_Flags)
 		return 0;
-	}
 
 	// send of the packets
 	m_Construct.m_Ack = m_Ack;
@@ -121,17 +115,14 @@ int CNetConnection::Flush()
 
 int CNetConnection::QueueChunkEx(int Flags, int DataSize, const void *pData, int Sequence)
 {
-	if(m_State == EState::OFFLINE || m_State == EState::ERROR)
+	if(m_State == NET_CONNSTATE_OFFLINE || m_State == NET_CONNSTATE_ERROR)
 		return -1;
 
 	unsigned char *pChunkData;
 
 	// check if we have space for it, if not, flush the connection
-	if(m_Construct.m_DataSize + DataSize + NET_MAX_CHUNKHEADERSIZE > (int)sizeof(m_Construct.m_aChunkData) - (int)sizeof(SECURITY_TOKEN) ||
-		m_Construct.m_NumChunks == NET_MAX_PACKET_CHUNKS)
-	{
+	if(m_Construct.m_DataSize + DataSize + NET_MAX_CHUNKHEADERSIZE > (int)sizeof(m_Construct.m_aChunkData) - (int)sizeof(SECURITY_TOKEN))
 		Flush();
-	}
 
 	// pack all the data
 	CNetChunkHeader Header;
@@ -211,7 +202,7 @@ void CNetConnection::Resend()
 
 int CNetConnection::Connect(const NETADDR *pAddr, int NumAddrs)
 {
-	if(State() != EState::OFFLINE)
+	if(State() != NET_CONNSTATE_OFFLINE)
 		return -1;
 
 	// init connection
@@ -224,7 +215,7 @@ int CNetConnection::Connect(const NETADDR *pAddr, int NumAddrs)
 	}
 	m_NumConnectAddrs = NumAddrs;
 	mem_zero(m_aErrorString, sizeof(m_aErrorString));
-	m_State = EState::CONNECT;
+	m_State = NET_CONNSTATE_CONNECT;
 	SendConnect();
 	return 0;
 }
@@ -238,7 +229,7 @@ void CNetConnection::SendControlWithToken7(int ControlMsg, SECURITY_TOKEN Respon
 
 int CNetConnection::Connect7(const NETADDR *pAddr, int NumAddrs)
 {
-	if(State() != EState::OFFLINE)
+	if(State() != NET_CONNSTATE_OFFLINE)
 		return -1;
 
 	// init connection
@@ -252,15 +243,15 @@ int CNetConnection::Connect7(const NETADDR *pAddr, int NumAddrs)
 	SetPeerAddr(pAddr);
 	SetToken7(GenerateToken7(pAddr));
 	mem_zero(m_aErrorString, sizeof(m_aErrorString));
-	m_State = EState::WANT_TOKEN;
-	SendControlWithToken7(protocol7::NET_CTRLMSG_TOKEN, NET_TOKEN_NONE);
+	m_State = NET_CONNSTATE_TOKEN;
+	SendControlWithToken7(NET_CTRLMSG_TOKEN, NET_TOKEN_NONE);
 	m_Sixup = true;
 	return 0;
 }
 
 void CNetConnection::SetToken7(TOKEN Token)
 {
-	if(State() != EState::OFFLINE)
+	if(State() != NET_CONNSTATE_OFFLINE)
 		return;
 
 	m_Token = Token;
@@ -275,7 +266,7 @@ TOKEN CNetConnection::GenerateToken7(const NETADDR *pPeerAddr)
 
 void CNetConnection::Disconnect(const char *pReason)
 {
-	if(State() == EState::OFFLINE)
+	if(State() == NET_CONNSTATE_OFFLINE)
 		return;
 
 	if(m_RemoteClosed == 0)
@@ -303,7 +294,7 @@ void CNetConnection::DirectInit(const NETADDR &Addr, SECURITY_TOKEN SecurityToke
 {
 	Reset();
 
-	m_State = EState::ONLINE;
+	m_State = NET_CONNSTATE_ONLINE;
 
 	SetPeerAddr(&Addr);
 	mem_zero(m_aErrorString, sizeof(m_aErrorString));
@@ -321,12 +312,12 @@ void CNetConnection::DirectInit(const NETADDR &Addr, SECURITY_TOKEN SecurityToke
 int CNetConnection::Feed(CNetPacketConstruct *pPacket, NETADDR *pAddr, SECURITY_TOKEN SecurityToken, SECURITY_TOKEN ResponseToken)
 {
 	// Disregard packets from the wrong address, unless we don't know our peer yet.
-	if(State() != EState::OFFLINE && State() != EState::CONNECT && *pAddr != m_PeerAddr)
+	if(State() != NET_CONNSTATE_OFFLINE && State() != NET_CONNSTATE_CONNECT && *pAddr != m_PeerAddr)
 	{
 		return 0;
 	}
 
-	if(!m_Sixup && State() != EState::OFFLINE && m_SecurityToken != NET_SECURITY_TOKEN_UNKNOWN && m_SecurityToken != NET_SECURITY_TOKEN_UNSUPPORTED)
+	if(!m_Sixup && State() != NET_CONNSTATE_OFFLINE && m_SecurityToken != NET_SECURITY_TOKEN_UNKNOWN && m_SecurityToken != NET_SECURITY_TOKEN_UNSUPPORTED)
 	{
 		// supposed to have a valid token in this packet, check it
 		if(pPacket->m_DataSize < (int)sizeof(m_SecurityToken))
@@ -370,7 +361,7 @@ int CNetConnection::Feed(CNetPacketConstruct *pPacket, NETADDR *pAddr, SECURITY_
 		if(CtrlMsg == NET_CTRLMSG_CLOSE)
 		{
 			bool IsPeer;
-			if(m_State != EState::CONNECT)
+			if(m_State != NET_CONNSTATE_CONNECT)
 			{
 				IsPeer = m_PeerAddr == *pAddr;
 			}
@@ -388,7 +379,7 @@ int CNetConnection::Feed(CNetPacketConstruct *pPacket, NETADDR *pAddr, SECURITY_
 			}
 			if(IsPeer)
 			{
-				m_State = EState::ERROR;
+				m_State = NET_CONNSTATE_ERROR;
 				m_RemoteClosed = 1;
 
 				char aStr[256] = {0};
@@ -412,27 +403,22 @@ int CNetConnection::Feed(CNetPacketConstruct *pPacket, NETADDR *pAddr, SECURITY_
 		}
 		else
 		{
-			if(m_Sixup && CtrlMsg == protocol7::NET_CTRLMSG_TOKEN)
+			if(CtrlMsg == NET_CTRLMSG_TOKEN)
 			{
-				if(State() == EState::WANT_TOKEN)
+				if(State() == NET_CONNSTATE_TOKEN)
 				{
 					m_LastRecvTime = Now;
-					m_State = EState::CONNECT;
+					m_State = NET_CONNSTATE_CONNECT;
 					m_SecurityToken = ResponseToken;
 					SendControlWithToken7(NET_CTRLMSG_CONNECT, m_SecurityToken);
-					if(g_Config.m_Debug)
-					{
-						log_debug("connection", "got token, replying, token=%x mytoken=%x", m_SecurityToken, m_Token);
-					}
+					dbg_msg("connection", "got token, replying, token=%x mytoken=%x", m_SecurityToken, m_Token);
 				}
 				else if(g_Config.m_Debug)
-				{
-					log_debug("connection", "got token, token=%x", ResponseToken);
-				}
+					dbg_msg("connection", "got token, token=%x", ResponseToken);
 			}
 			else
 			{
-				if(State() == EState::OFFLINE)
+				if(State() == NET_CONNSTATE_OFFLINE)
 				{
 					if(CtrlMsg == NET_CTRLMSG_CONNECT)
 					{
@@ -441,7 +427,7 @@ int CNetConnection::Feed(CNetPacketConstruct *pPacket, NETADDR *pAddr, SECURITY_
 
 						// send response and init connection
 						Reset();
-						m_State = EState::PENDING;
+						m_State = NET_CONNSTATE_PENDING;
 						SetPeerAddr(pAddr);
 						mem_zero(m_aErrorString, sizeof(m_aErrorString));
 						m_LastSendTime = Now;
@@ -464,7 +450,7 @@ int CNetConnection::Feed(CNetPacketConstruct *pPacket, NETADDR *pAddr, SECURITY_
 							dbg_msg("connection", "got connection, sending connect+accept");
 					}
 				}
-				else if(State() == EState::CONNECT)
+				else if(State() == NET_CONNSTATE_CONNECT)
 				{
 					// connection made
 					if(CtrlMsg == NET_CTRLMSG_CONNECTACCEPT)
@@ -485,7 +471,7 @@ int CNetConnection::Feed(CNetPacketConstruct *pPacket, NETADDR *pAddr, SECURITY_
 						if(!IsSixup())
 							SendControl(NET_CTRLMSG_ACCEPT, nullptr, 0);
 						m_LastRecvTime = Now;
-						m_State = EState::ONLINE;
+						m_State = NET_CONNSTATE_ONLINE;
 						if(g_Config.m_Debug)
 							dbg_msg("connection", "got connect+accept, sending accept. connection online");
 					}
@@ -495,16 +481,16 @@ int CNetConnection::Feed(CNetPacketConstruct *pPacket, NETADDR *pAddr, SECURITY_
 	}
 	else
 	{
-		if(State() == EState::PENDING)
+		if(State() == NET_CONNSTATE_PENDING)
 		{
 			m_LastRecvTime = Now;
-			m_State = EState::ONLINE;
+			m_State = NET_CONNSTATE_ONLINE;
 			if(g_Config.m_Debug)
 				dbg_msg("connection", "connecting online");
 		}
 	}
 
-	if(State() == EState::ONLINE)
+	if(State() == NET_CONNSTATE_ONLINE)
 	{
 		m_LastRecvTime = Now;
 		AckChunks(pPacket->m_Ack);
@@ -517,23 +503,23 @@ int CNetConnection::Update()
 {
 	int64_t Now = time_get();
 
-	if(State() == EState::ERROR && m_TimeoutSituation && (Now - m_LastRecvTime) > time_freq() * g_Config.m_ConnTimeoutProtection)
+	if(State() == NET_CONNSTATE_ERROR && m_TimeoutSituation && (Now - m_LastRecvTime) > time_freq() * g_Config.m_ConnTimeoutProtection)
 	{
 		m_TimeoutSituation = false;
 		SetError("Timeout Protection over");
 	}
 
-	if(State() == EState::OFFLINE || State() == EState::ERROR)
+	if(State() == NET_CONNSTATE_OFFLINE || State() == NET_CONNSTATE_ERROR)
 		return 0;
 
 	m_TimeoutSituation = false;
 
 	// check for timeout
-	if(State() != EState::OFFLINE &&
-		State() != EState::CONNECT &&
+	if(State() != NET_CONNSTATE_OFFLINE &&
+		State() != NET_CONNSTATE_CONNECT &&
 		(Now - m_LastRecvTime) > time_freq() * g_Config.m_ConnTimeout)
 	{
-		m_State = EState::ERROR;
+		m_State = NET_CONNSTATE_ERROR;
 		SetError("Timeout");
 		m_TimeoutSituation = true;
 	}
@@ -546,7 +532,7 @@ int CNetConnection::Update()
 		// check if we have some really old stuff laying around and abort if not acked
 		if(Now - pResend->m_FirstSendTime > time_freq() * g_Config.m_ConnTimeout)
 		{
-			m_State = EState::ERROR;
+			m_State = NET_CONNSTATE_ERROR;
 			char aBuf[128];
 			str_format(aBuf, sizeof(aBuf), "Too weak connection (not acked for %d seconds)", g_Config.m_ConnTimeout);
 			SetError(aBuf);
@@ -561,7 +547,7 @@ int CNetConnection::Update()
 	}
 
 	// send keep alives if nothing has happened for 250ms
-	if(State() == EState::ONLINE)
+	if(State() == NET_CONNSTATE_ONLINE)
 	{
 		if(time_get() - m_LastSendTime > time_freq() / 2) // flush connection after 500ms if needed
 		{
@@ -573,12 +559,12 @@ int CNetConnection::Update()
 		if(time_get() - m_LastSendTime > time_freq())
 			SendControl(NET_CTRLMSG_KEEPALIVE, nullptr, 0);
 	}
-	else if(State() == EState::CONNECT)
+	else if(State() == NET_CONNSTATE_CONNECT)
 	{
 		if(time_get() - m_LastSendTime > time_freq() / 2) // send a new connect every 500ms
 			SendConnect();
 	}
-	else if(State() == EState::PENDING)
+	else if(State() == NET_CONNSTATE_PENDING)
 	{
 		if(time_get() - m_LastSendTime > time_freq() / 2) // send a new connect/accept every 500ms
 			SendControl(NET_CTRLMSG_CONNECTACCEPT, SECURITY_TOKEN_MAGIC, sizeof(SECURITY_TOKEN_MAGIC));
@@ -595,7 +581,7 @@ void CNetConnection::SetTimedOut(const NETADDR *pAddr, int Sequence, int Ack, SE
 	m_Ack = Ack;
 	m_RemoteClosed = 0;
 
-	m_State = EState::ONLINE;
+	m_State = NET_CONNSTATE_ONLINE;
 	SetPeerAddr(pAddr);
 	mem_zero(m_aErrorString, sizeof(m_aErrorString));
 	m_LastSendTime = Now;

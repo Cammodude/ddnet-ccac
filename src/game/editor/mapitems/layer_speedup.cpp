@@ -6,7 +6,7 @@ CLayerSpeedup::CLayerSpeedup(CEditor *pEditor, int w, int h) :
 	CLayerTiles(pEditor, w, h)
 {
 	str_copy(m_aName, "Speedup");
-	m_HasSpeedup = true;
+	m_Speedup = 1;
 
 	m_pSpeedupTile = new CSpeedupTile[w * h];
 	mem_zero(m_pSpeedupTile, (size_t)w * h * sizeof(CSpeedupTile));
@@ -16,7 +16,7 @@ CLayerSpeedup::CLayerSpeedup(const CLayerSpeedup &Other) :
 	CLayerTiles(Other)
 {
 	str_copy(m_aName, "Speedup copy");
-	m_HasSpeedup = true;
+	m_Speedup = 1;
 
 	m_pSpeedupTile = new CSpeedupTile[m_Width * m_Height];
 	mem_copy(m_pSpeedupTile, Other.m_pSpeedupTile, (size_t)m_Width * m_Height * sizeof(CSpeedupTile));
@@ -55,23 +55,13 @@ void CLayerSpeedup::Shift(int Direction)
 	ShiftImpl(m_pSpeedupTile, Direction, m_pEditor->m_ShiftBy);
 }
 
-bool CLayerSpeedup::IsEmpty() const
+bool CLayerSpeedup::IsEmpty(const std::shared_ptr<CLayerTiles> &pLayer)
 {
-	for(int y = 0; y < m_Height; y++)
-	{
-		for(int x = 0; x < m_Width; x++)
-		{
-			const int Index = GetTile(x, y).m_Index;
-			if(Index == 0)
-			{
-				continue;
-			}
-			if(m_pEditor->IsAllowPlaceUnusedTiles() || IsValidSpeedupTile(Index))
-			{
+	for(int y = 0; y < pLayer->m_Height; y++)
+		for(int x = 0; x < pLayer->m_Width; x++)
+			if(m_pEditor->IsAllowPlaceUnusedTiles() || IsValidSpeedupTile(pLayer->GetTile(x, y).m_Index))
 				return false;
-			}
-		}
-	}
+
 	return true;
 }
 
@@ -90,7 +80,7 @@ void CLayerSpeedup::BrushDraw(std::shared_ptr<CLayer> pBrush, vec2 WorldPos)
 		m_pEditor->m_SpeedupMaxSpeed = pSpeedupLayer->m_SpeedupMaxSpeed;
 	}
 
-	bool Destructive = m_pEditor->m_BrushDrawDestructive || pSpeedupLayer->IsEmpty();
+	bool Destructive = m_pEditor->m_BrushDrawDestructive || IsEmpty(pSpeedupLayer);
 
 	for(int y = 0; y < pSpeedupLayer->m_Height; y++)
 		for(int x = 0; x < pSpeedupLayer->m_Width; x++)
@@ -185,28 +175,12 @@ void CLayerSpeedup::BrushFlipX()
 {
 	CLayerTiles::BrushFlipX();
 	BrushFlipXImpl(m_pSpeedupTile);
-
-	auto &&AngleFlipX = [](auto &Number) {
-		Number = (180 - Number % 360 + 360) % 360;
-	};
-
-	for(int y = 0; y < m_Height; y++)
-		for(int x = 0; x < m_Width; x++)
-			AngleFlipX(m_pSpeedupTile[y * m_Width + x].m_Angle);
 }
 
 void CLayerSpeedup::BrushFlipY()
 {
 	CLayerTiles::BrushFlipY();
 	BrushFlipYImpl(m_pSpeedupTile);
-
-	auto &&AngleFlipY = [](auto &Number) {
-		Number = (360 - Number % 360 + 360) % 360;
-	};
-
-	for(int y = 0; y < m_Height; y++)
-		for(int x = 0; x < m_Width; x++)
-			AngleFlipY(m_pSpeedupTile[y * m_Width + x].m_Angle);
 }
 
 void CLayerSpeedup::BrushRotate(float Amount)
@@ -214,12 +188,6 @@ void CLayerSpeedup::BrushRotate(float Amount)
 	int Rotation = (round_to_int(360.0f * Amount / (pi * 2)) / 90) % 4; // 0=0°, 1=90°, 2=180°, 3=270°
 	if(Rotation < 0)
 		Rotation += 4;
-
-	// 1 and 3 are both adjusted by 90, because for 3 the brush is also flipped
-	int Adjust = (Rotation == 0) ? 0 : (Rotation == 2) ? 180 : 90;
-	auto &&AdjustAngle = [Adjust](auto &Number) {
-		Number = (Number + Adjust % 360 + 360) % 360;
-	};
 
 	if(Rotation == 1 || Rotation == 3)
 	{
@@ -233,7 +201,6 @@ void CLayerSpeedup::BrushRotate(float Amount)
 		for(int x = 0; x < m_Width; ++x)
 			for(int y = m_Height - 1; y >= 0; --y, ++pDst1, ++pDst2)
 			{
-				AdjustAngle(pTempData1[y * m_Width + x].m_Angle);
 				*pDst1 = pTempData1[y * m_Width + x];
 				*pDst2 = pTempData2[y * m_Width + x];
 			}
@@ -255,6 +222,8 @@ void CLayerSpeedup::FillSelection(bool Empty, std::shared_ptr<CLayer> pBrush, CU
 	if(m_Readonly || (!Empty && pBrush->m_Type != LAYERTYPE_TILES))
 		return;
 
+	Snap(&Rect); // corrects Rect; no need of <=
+
 	Snap(&Rect);
 
 	int sx = ConvertX(Rect.x);
@@ -264,7 +233,7 @@ void CLayerSpeedup::FillSelection(bool Empty, std::shared_ptr<CLayer> pBrush, CU
 
 	std::shared_ptr<CLayerSpeedup> pLt = std::static_pointer_cast<CLayerSpeedup>(pBrush);
 
-	bool Destructive = m_pEditor->m_BrushDrawDestructive || Empty || pLt->IsEmpty();
+	bool Destructive = m_pEditor->m_BrushDrawDestructive || Empty || IsEmpty(pLt);
 
 	for(int y = 0; y < h; y++)
 	{
@@ -294,8 +263,6 @@ void CLayerSpeedup::FillSelection(bool Empty, std::shared_ptr<CLayer> pBrush, CU
 				m_pTiles[TgtIndex].m_Index = 0;
 				m_pSpeedupTile[TgtIndex].m_Force = 0;
 				m_pSpeedupTile[TgtIndex].m_Angle = 0;
-				m_pSpeedupTile[TgtIndex].m_MaxSpeed = 0;
-				m_pSpeedupTile[TgtIndex].m_Type = 0;
 
 				if(!Empty)
 					ShowPreventUnusedTilesWarning();
@@ -303,7 +270,7 @@ void CLayerSpeedup::FillSelection(bool Empty, std::shared_ptr<CLayer> pBrush, CU
 			else
 			{
 				m_pTiles[TgtIndex] = pLt->m_pTiles[SrcIndex];
-				if(pLt->m_HasSpeedup && m_pTiles[TgtIndex].m_Index > 0)
+				if(pLt->m_Speedup && m_pTiles[TgtIndex].m_Index > 0)
 				{
 					m_pSpeedupTile[TgtIndex].m_Type = m_pTiles[TgtIndex].m_Index;
 
@@ -327,8 +294,6 @@ void CLayerSpeedup::FillSelection(bool Empty, std::shared_ptr<CLayer> pBrush, CU
 					m_pTiles[TgtIndex].m_Index = 0;
 					m_pSpeedupTile[TgtIndex].m_Force = 0;
 					m_pSpeedupTile[TgtIndex].m_Angle = 0;
-					m_pSpeedupTile[TgtIndex].m_MaxSpeed = 0;
-					m_pSpeedupTile[TgtIndex].m_Type = 0;
 				}
 			}
 

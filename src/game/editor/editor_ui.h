@@ -15,13 +15,8 @@ struct SEditBoxDropdownContext
 	int m_Width = 0;
 };
 
-// TODO: add and use constants for other special Checked-values in CEditor::GetButtonColor
-namespace EditorButtonChecked {
-[[maybe_unused]] static constexpr int DANGEROUS_ACTION = 9;
-}
-
 namespace EditorFontSizes {
-[[maybe_unused]] static constexpr float MENU = 10.0f;
+MAYBE_UNUSED static constexpr float MENU = 10.0f;
 }
 
 #endif

@@ -4,7 +4,8 @@ if(NOT CMAKE_CROSSCOMPILING)
   )
 
   if(MYSQL_CONFIG)
-    execute_process(COMMAND ${MYSQL_CONFIG} --include
+    exec_program(${MYSQL_CONFIG}
+      ARGS --include
       OUTPUT_VARIABLE MY_TMP
     )
 
@@ -12,7 +13,8 @@ if(NOT CMAKE_CROSSCOMPILING)
 
     set(MYSQL_CONFIG_INCLUDE_DIR ${MY_TMP} CACHE FILEPATH INTERNAL)
 
-    execute_process(COMMAND ${MYSQL_CONFIG} --libs_r
+    exec_program(${MYSQL_CONFIG}
+      ARGS --libs_r
       OUTPUT_VARIABLE MY_TMP
     )
 

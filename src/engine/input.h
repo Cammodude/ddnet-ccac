@@ -95,7 +95,7 @@ public:
 		virtual int GetNumBalls() const = 0;
 		virtual int GetNumHats() const = 0;
 		virtual float GetAxisValue(int Axis) = 0;
-		virtual void GetHatValue(int Hat, int (&aHatKeys)[2]) = 0;
+		virtual void GetHatValue(int Hat, int (&HatKeys)[2]) = 0;
 		virtual bool Relative(float *pX, float *pY) = 0;
 		virtual bool Absolute(float *pX, float *pY) = 0;
 	};
@@ -178,7 +178,6 @@ public:
 	// text editing
 	virtual void StartTextInput() = 0;
 	virtual void StopTextInput() = 0;
-	virtual void EnsureScreenKeyboardShown() = 0;
 	virtual const char *GetComposition() const = 0;
 	virtual bool HasComposition() const = 0;
 	virtual int GetCompositionCursor() const = 0;
@@ -206,7 +205,7 @@ class IEngineInput : public IInput
 	MACRO_INTERFACE("engineinput")
 public:
 	virtual void Init() = 0;
-	void Shutdown() override = 0;
+	virtual void Shutdown() override = 0;
 	virtual int Update() = 0;
 };
 

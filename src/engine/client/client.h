@@ -3,8 +3,11 @@
 #ifndef ENGINE_CLIENT_CLIENT_H
 #define ENGINE_CLIENT_CLIENT_H
 
+#include <deque>
+#include <memory>
+#include <mutex>
+
 #include <base/hash.h>
-#include <base/types.h>
 
 #include <engine/client.h>
 #include <engine/client/checksum.h>
@@ -25,11 +28,6 @@
 #include "graph.h"
 #include "smooth_time.h"
 
-#include <chrono>
-#include <deque>
-#include <memory>
-#include <mutex>
-
 class CDemoEdit;
 class IDemoRecorder;
 class CMsgPacker;
@@ -46,6 +44,9 @@ class ISteam;
 class INotifications;
 class IStorage;
 class IUpdater;
+
+#define CONNECTLINK_DOUBLE_SLASH "ddnet://"
+#define CONNECTLINK_NO_SLASH "ddnet:"
 
 class CServerCapabilities
 {
@@ -163,7 +164,6 @@ class CClient : public IClient, public CDemoPlayer::IListener
 	SHA256_DIGEST m_MapDetailsSha256 = SHA256_ZEROED;
 	char m_aMapDetailsUrl[256] = "";
 
-	EInfoState m_InfoState = EInfoState::ERROR;
 	std::shared_ptr<CHttpRequest> m_pDDNetInfoTask = nullptr;
 
 	// time
@@ -265,11 +265,6 @@ class CClient : public IClient, public CDemoPlayer::IListener
 	std::shared_ptr<ILogger> m_pFileLogger = nullptr;
 	std::shared_ptr<ILogger> m_pStdoutLogger = nullptr;
 
-	// For RenderDebug function
-	NETSTATS m_NetstatsPrev = {};
-	NETSTATS m_NetstatsCurrent = {};
-	std::chrono::nanoseconds m_NetstatsLastUpdate = std::chrono::nanoseconds(0);
-
 	// For DummyName function
 	char m_aAutomaticDummyName[MAX_NAME_LENGTH];
 
@@ -296,6 +291,8 @@ public:
 	// Send via the currently active client (main/dummy)
 	int SendMsgActive(CMsgPacker *pMsg, int Flags) override;
 
+	void ChillerBotLoadMap(const char *pMap) override;
+	void SendChillerBotUX(bool Dummy);
 	void SendInfo(int Conn);
 	void SendEnterGame(int Conn);
 	void SendReady(int Conn);
@@ -381,7 +378,6 @@ public:
 	void ResetMapDownload(bool ResetActive);
 	void FinishMapDownload();
 
-	EInfoState InfoState() const override { return m_InfoState; }
 	void RequestDDNetInfo() override;
 	void ResetDDNetInfoTask();
 	void LoadDDNetInfo();
@@ -453,7 +449,6 @@ public:
 	static void ConchainTimeoutSeed(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainPassword(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainReplays(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
-	static void ConchainInputFifo(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainLoglevel(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainStdoutOutputLevel(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 
@@ -490,6 +485,9 @@ public:
 	virtual int HandleChecksum(int Conn, CUuid Uuid, CUnpacker *pUnpacker);
 
 	// gfx
+	void SwitchWindowScreen(int Index) override;
+	void SetWindowParams(int FullscreenMode, bool IsBorderless) override;
+	void ToggleWindowVSync() override;
 	void Notify(const char *pTitle, const char *pMessage) override;
 	void OnWindowResize() override;
 	void BenchmarkQuit(int Seconds, const char *pFilename);
@@ -536,8 +534,8 @@ public:
 	void ShellUnregister() override;
 #endif
 
-	std::optional<int> ShowMessageBox(const IGraphics::CMessageBox &MessageBox) override;
-	void GetGpuInfoString(char (&aGpuInfo)[512]) override;
+	void ShowMessageBox(const char *pTitle, const char *pMessage, EMessageBoxType Type = MESSAGE_BOX_TYPE_ERROR) override;
+	void GetGpuInfoString(char (&aGpuInfo)[256]) override;
 	void SetLoggers(std::shared_ptr<ILogger> &&pFileLogger, std::shared_ptr<ILogger> &&pStdoutLogger);
 };
 

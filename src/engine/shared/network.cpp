@@ -3,8 +3,6 @@
 #include <base/system.h>
 #include <base/types.h>
 
-#include <engine/shared/protocolglue.h>
-
 #include "config.h"
 #include "huffman.h"
 #include "network.h"
@@ -104,29 +102,6 @@ int CNetRecvUnpacker::FetchChunk(CNetChunk *pChunk)
 	}
 }
 
-bool CNetBase::IsValidConnectionOrientedPacket(const CNetPacketConstruct *pPacket)
-{
-	if((pPacket->m_Flags & ~(NET_PACKETFLAG_CONTROL | NET_PACKETFLAG_RESEND | NET_PACKETFLAG_COMPRESSION)) != 0)
-	{
-		return false;
-	}
-
-	if((pPacket->m_Flags & NET_PACKETFLAG_CONTROL) != 0)
-	{
-		// At least one byte is required as the control message code in control packets.
-		// Control packets always contain zero chunks and are never compressed.
-		return pPacket->m_NumChunks == 0 &&
-		       pPacket->m_DataSize > 0 &&
-		       (pPacket->m_Flags & NET_PACKETFLAG_COMPRESSION) == 0;
-	}
-
-	// Packets are allowed to contain no chunks if they are used to request a resend,
-	// otherwise at least one chunk is required or the packet would have no effect.
-	const int MinChunks = (pPacket->m_Flags & NET_PACKETFLAG_RESEND) != 0 ? 0 : 1;
-	return pPacket->m_NumChunks >= MinChunks &&
-	       pPacket->m_NumChunks <= NET_MAX_PACKET_CHUNKS;
-}
-
 static const unsigned char NET_HEADER_EXTENDED[] = {'x', 'e'};
 // packs the data tight and sends it
 void CNetBase::SendPacketConnless(NETSOCKET Socket, NETADDR *pAddr, const void *pData, int DataSize, bool Extended, unsigned char aExtra[4])
@@ -160,13 +135,11 @@ void CNetBase::SendPacketConnlessWithToken7(NETSOCKET Socket, NETADDR *pAddr, co
 	net_udp_send(Socket, pAddr, aBuffer, DataSize + DATA_OFFSET);
 }
 
-void CNetBase::SendPacket(NETSOCKET Socket, NETADDR *pAddr, CNetPacketConstruct *pPacket, SECURITY_TOKEN SecurityToken, bool Sixup)
+void CNetBase::SendPacket(NETSOCKET Socket, NETADDR *pAddr, CNetPacketConstruct *pPacket, SECURITY_TOKEN SecurityToken, bool Sixup, bool NoCompress)
 {
-	dbg_assert(IsValidConnectionOrientedPacket(pPacket), "Invalid packet to send. Flags=%d Ack=%d NumChunks=%d Size=%d",
-		pPacket->m_Flags, pPacket->m_Ack, pPacket->m_NumChunks, pPacket->m_DataSize);
-	dbg_assert((pPacket->m_Flags & NET_PACKETFLAG_COMPRESSION) == 0, "Do not set NET_PACKETFLAG_COMPRESSION, it will be set automatically when approriate");
-
 	unsigned char aBuffer[NET_MAX_PACKETSIZE];
+	int CompressedSize = -1;
+	int FinalSize = -1;
 
 	// log the data
 	if(ms_DataLogSent)
@@ -192,16 +165,12 @@ void CNetBase::SendPacket(NETSOCKET Socket, NETADDR *pAddr, CNetPacketConstruct 
 		pPacket->m_DataSize += sizeof(SecurityToken);
 	}
 
-	// only compress non-control packets
-	int CompressedSize = -1;
-	if((pPacket->m_Flags & NET_PACKETFLAG_CONTROL) == 0)
-	{
+	// compress
+	if(!NoCompress)
 		CompressedSize = ms_Huffman.Compress(pPacket->m_aChunkData, pPacket->m_DataSize, &aBuffer[HeaderSize], NET_MAX_PACKETSIZE - HeaderSize);
-	}
 
 	// check if the compression was enabled, successful and good enough
-	int FinalSize;
-	if(CompressedSize > 0 && CompressedSize < pPacket->m_DataSize)
+	if(!NoCompress && CompressedSize > 0 && CompressedSize < pPacket->m_DataSize)
 	{
 		FinalSize = CompressedSize;
 		pPacket->m_Flags |= NET_PACKETFLAG_COMPRESSION;
@@ -211,11 +180,19 @@ void CNetBase::SendPacket(NETSOCKET Socket, NETADDR *pAddr, CNetPacketConstruct 
 		// use uncompressed data
 		FinalSize = pPacket->m_DataSize;
 		mem_copy(&aBuffer[HeaderSize], pPacket->m_aChunkData, pPacket->m_DataSize);
+		pPacket->m_Flags &= ~NET_PACKETFLAG_COMPRESSION;
 	}
 
 	if(Sixup)
 	{
-		pPacket->m_Flags = PacketFlags_SixToSeven(pPacket->m_Flags);
+		unsigned Flags = 0;
+		if(pPacket->m_Flags & NET_PACKETFLAG_CONTROL)
+			Flags |= 1;
+		if(pPacket->m_Flags & NET_PACKETFLAG_RESEND)
+			Flags |= 2;
+		if(pPacket->m_Flags & NET_PACKETFLAG_COMPRESSION)
+			Flags |= 4;
+		pPacket->m_Flags = Flags;
 	}
 
 	// set header and send the packet if all things are good
@@ -239,23 +216,12 @@ void CNetBase::SendPacket(NETSOCKET Socket, NETADDR *pAddr, CNetPacketConstruct 
 	}
 }
 
-std::optional<int> CNetBase::UnpackPacketFlags(unsigned char *pBuffer, int Size)
-{
-	if(Size < NET_PACKETHEADERSIZE || Size > NET_MAX_PACKETSIZE)
-	{
-		return std::nullopt;
-	}
-	return pBuffer[0] >> 2;
-}
-
 // TODO: rename this function
 int CNetBase::UnpackPacket(unsigned char *pBuffer, int Size, CNetPacketConstruct *pPacket, bool &Sixup, SECURITY_TOKEN *pSecurityToken, SECURITY_TOKEN *pResponseToken)
 {
-	std::optional<int> Flags = UnpackPacketFlags(pBuffer, Size);
-	if(!Flags)
-	{
+	// check the size
+	if(Size < NET_PACKETHEADERSIZE || Size > NET_MAX_PACKETSIZE)
 		return -1;
-	}
 
 	// log the data
 	if(ms_DataLogRecv)
@@ -268,7 +234,7 @@ int CNetBase::UnpackPacket(unsigned char *pBuffer, int Size, CNetPacketConstruct
 	}
 
 	// read the packet
-	pPacket->m_Flags = *Flags;
+	pPacket->m_Flags = pBuffer[0] >> 2;
 
 	if(pPacket->m_Flags & NET_PACKETFLAG_CONNLESS)
 	{
@@ -313,35 +279,45 @@ int CNetBase::UnpackPacket(unsigned char *pBuffer, int Size, CNetPacketConstruct
 
 		if(Sixup)
 		{
-			pPacket->m_Flags = PacketFlags_SevenToSix(pPacket->m_Flags);
+			unsigned Flags = 0;
+			if(pPacket->m_Flags & 1)
+				Flags |= NET_PACKETFLAG_CONTROL;
+			if(pPacket->m_Flags & 2)
+				Flags |= NET_PACKETFLAG_RESEND;
+			if(pPacket->m_Flags & 4)
+				Flags |= NET_PACKETFLAG_COMPRESSION;
+			pPacket->m_Flags = Flags;
+
 			*pSecurityToken = ToSecurityToken(pBuffer + 3);
 		}
 
-		if(!IsValidConnectionOrientedPacket(pPacket))
+		if(pPacket->m_Flags & NET_PACKETFLAG_COMPRESSION)
 		{
-			return -1;
-		}
-
-		if((pPacket->m_Flags & NET_PACKETFLAG_COMPRESSION) != 0)
-		{
-			pPacket->m_DataSize = ms_Huffman.Decompress(&pBuffer[DataStart], pPacket->m_DataSize, pPacket->m_aChunkData, sizeof(pPacket->m_aChunkData));
-			if(pPacket->m_DataSize < 0)
+			// Don't allow compressed control packets.
+			if(pPacket->m_Flags & NET_PACKETFLAG_CONTROL)
 			{
 				return -1;
 			}
+			pPacket->m_DataSize = ms_Huffman.Decompress(&pBuffer[DataStart], pPacket->m_DataSize, pPacket->m_aChunkData, sizeof(pPacket->m_aChunkData));
 		}
 		else
-		{
 			mem_copy(pPacket->m_aChunkData, &pBuffer[DataStart], pPacket->m_DataSize);
-		}
+	}
+
+	// check for errors
+	if(pPacket->m_DataSize < 0)
+	{
+		if(g_Config.m_Debug)
+			dbg_msg("network", "error during packet decoding");
+		return -1;
 	}
 
 	// set the response token (a bit hacky because this function shouldn't know about control packets)
 	if(pPacket->m_Flags & NET_PACKETFLAG_CONTROL)
 	{
-		if(pPacket->m_DataSize >= 1 + (int)sizeof(SECURITY_TOKEN)) // control byte + token
+		if(pPacket->m_DataSize >= 5) // control byte + token
 		{
-			if(pPacket->m_aChunkData[0] == NET_CTRLMSG_CONNECT || (Sixup && pPacket->m_aChunkData[0] == protocol7::NET_CTRLMSG_TOKEN))
+			if(pPacket->m_aChunkData[0] == NET_CTRLMSG_CONNECT || pPacket->m_aChunkData[0] == NET_CTRLMSG_TOKEN)
 			{
 				*pResponseToken = ToSecurityToken(&pPacket->m_aChunkData[1]);
 			}
@@ -373,7 +349,8 @@ void CNetBase::SendControlMsg(NETSOCKET Socket, NETADDR *pAddr, int Ack, int Con
 	if(pExtra)
 		mem_copy(&Construct.m_aChunkData[1], pExtra, ExtraSize);
 
-	CNetBase::SendPacket(Socket, pAddr, &Construct, SecurityToken, Sixup);
+	// send the control message
+	CNetBase::SendPacket(Socket, pAddr, &Construct, SecurityToken, Sixup, true);
 }
 
 void CNetBase::SendControlMsgWithToken7(NETSOCKET Socket, NETADDR *pAddr, TOKEN Token, int Ack, int ControlMsg, TOKEN MyToken, bool Extended)
@@ -381,13 +358,12 @@ void CNetBase::SendControlMsgWithToken7(NETSOCKET Socket, NETADDR *pAddr, TOKEN 
 	dbg_assert((Token & ~NET_TOKEN_MASK) == 0, "token out of range");
 	dbg_assert((MyToken & ~NET_TOKEN_MASK) == 0, "resp token out of range");
 
-	unsigned char aRequestTokenBuf[NET_TOKENREQUEST_DATASIZE] = {};
-	aRequestTokenBuf[0] = (MyToken >> 24) & 0xff;
-	aRequestTokenBuf[1] = (MyToken >> 16) & 0xff;
-	aRequestTokenBuf[2] = (MyToken >> 8) & 0xff;
-	aRequestTokenBuf[3] = (MyToken)&0xff;
-	const int Size = Extended ? sizeof(aRequestTokenBuf) : sizeof(TOKEN);
-	CNetBase::SendControlMsg(Socket, pAddr, Ack, ControlMsg, aRequestTokenBuf, Size, Token, true);
+	unsigned char s_aRequestTokenBuf[NET_TOKENREQUEST_DATASIZE];
+	s_aRequestTokenBuf[0] = (MyToken >> 24) & 0xff;
+	s_aRequestTokenBuf[1] = (MyToken >> 16) & 0xff;
+	s_aRequestTokenBuf[2] = (MyToken >> 8) & 0xff;
+	s_aRequestTokenBuf[3] = (MyToken)&0xff;
+	CNetBase::SendControlMsg(Socket, pAddr, 0, ControlMsg, s_aRequestTokenBuf, Extended ? sizeof(s_aRequestTokenBuf) : 4, Token, true);
 }
 
 unsigned char *CNetChunkHeader::Pack(unsigned char *pData, int Split) const
@@ -531,7 +507,7 @@ void CNetTokenCache::SendPacketConnless(CNetChunk *pChunk)
 
 void CNetTokenCache::FetchToken(NETADDR *pAddr)
 {
-	CNetBase::SendControlMsgWithToken7(m_Socket, pAddr, NET_TOKEN_NONE, 0, protocol7::NET_CTRLMSG_TOKEN, GenerateToken(), true);
+	CNetBase::SendControlMsgWithToken7(m_Socket, pAddr, NET_TOKEN_NONE, 0, NET_CTRLMSG_TOKEN, GenerateToken(), true);
 }
 
 void CNetTokenCache::AddToken(const NETADDR *pAddr, TOKEN Token)
@@ -541,7 +517,7 @@ void CNetTokenCache::AddToken(const NETADDR *pAddr, TOKEN Token)
 
 	NETADDR NullAddr = NETADDR_ZEROED;
 	NullAddr.port = pAddr->port;
-	NullAddr.type = (pAddr->type & ~(NETTYPE_WEBSOCKET_IPV4 | NETTYPE_WEBSOCKET_IPV6)) | NETTYPE_LINK_BROADCAST;
+	NullAddr.type = pAddr->type | NETTYPE_LINK_BROADCAST;
 
 	for(auto Iter = m_ConnlessPackets.begin(); Iter != m_ConnlessPackets.end();)
 	{

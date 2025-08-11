@@ -27,14 +27,14 @@ class CMapSounds : public CComponent
 
 public:
 	CMapSounds();
-	int Sizeof() const override { return sizeof(*this); }
+	virtual int Sizeof() const override { return sizeof(*this); }
 
 	void Play(int Channel, int SoundId);
 	void PlayAt(int Channel, int SoundId, vec2 Position);
 
-	void OnMapLoad() override;
-	void OnRender() override;
-	void OnStateChange(int NewState, int OldState) override;
+	virtual void OnMapLoad() override;
+	virtual void OnRender() override;
+	virtual void OnStateChange(int NewState, int OldState) override;
 };
 
 #endif // GAME_CLIENT_COMPONENTS_MAPSOUNDS_H

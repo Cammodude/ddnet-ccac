@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=DDNet-ccac
+GenericName=Platform Game
+Exec=DDNet-ccac %u
+Icon=DDNet-ccac
+Terminal=false
+Keywords=game;multiplayer;
+Categories=Game;ArcadeGame;
+MimeType=x-scheme-handler/DDNet-ccac;
+Comment=Launch DDNet-ccac
+Name[en_US]=ddnet-ccac.desktop

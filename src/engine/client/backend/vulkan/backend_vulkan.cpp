@@ -812,10 +812,11 @@ class CCommandProcessorFragment_Vulkan : public CCommandProcessorFragment_GLBase
 		float m_Padding;
 	};
 
-	struct SUniformQuadGroupedGPos
+	struct SUniformQuadPushGPos
 	{
 		float m_aPos[4 * 2];
 		SUniformQuadPushGBufferObject m_BOPush;
+		int32_t m_QuadOffset;
 	};
 
 	struct SUniformQuadGPos
@@ -981,11 +982,12 @@ private:
 	std::vector<VkCommandBuffer> m_vMemoryCommandBuffers;
 	std::vector<bool> m_vUsedMemoryCommandBuffer;
 
-	std::vector<VkSemaphore> m_vQueueSubmitSemaphores;
-	std::vector<VkSemaphore> m_vBusyAcquireImageSemaphores;
-	VkSemaphore m_AcquireImageSemaphore;
+	// swapped by use case
+	std::vector<VkSemaphore> m_vWaitSemaphores;
+	std::vector<VkSemaphore> m_vSigSemaphores;
 
-	std::vector<VkFence> m_vQueueSubmitFences;
+	std::vector<VkFence> m_vFrameFences;
+	std::vector<VkFence> m_vImagesFences;
 
 	uint64_t m_CurFrame = 0;
 	std::vector<uint64_t> m_vImageLastFrameCheck;
@@ -1027,7 +1029,7 @@ private:
 	SPipelineContainer m_SpriteMultiPipeline;
 	SPipelineContainer m_SpriteMultiPushPipeline;
 	SPipelineContainer m_QuadPipeline;
-	SPipelineContainer m_QuadGroupedPipeline;
+	SPipelineContainer m_QuadPushPipeline;
 
 	std::vector<VkPipeline> m_vLastPipeline;
 
@@ -1049,6 +1051,7 @@ private:
 	std::vector<SStreamMemory<SFrameBuffers>> m_vStreamedVertexBuffers;
 	std::vector<SStreamMemory<SFrameUniformBuffers>> m_vStreamedUniformBuffers;
 
+	uint32_t m_CurFrameSyncObject = 0;
 	uint32_t m_CurImageIndex = 0;
 
 	uint32_t m_CanvasWidth;
@@ -1160,6 +1163,20 @@ protected:
 		m_Warning.m_WarningType = WarningType;
 	}
 
+	const char *GetMemoryUsageShort()
+	{
+		m_ErrorHelper = std::string("Staging: ") +
+				std::to_string(m_pStagingMemoryUsage->load(std::memory_order_relaxed) / 1024) +
+				" KB, Buffer: " +
+				std::to_string(m_pBufferMemoryUsage->load(std::memory_order_relaxed) / 1024) +
+				" KB, Texture: " +
+				std::to_string(m_pTextureMemoryUsage->load(std::memory_order_relaxed) / 1024) +
+				" KB, Stream: " +
+				std::to_string(m_pStreamMemoryUsage->load(std::memory_order_relaxed) / 1024) +
+				" KB";
+		return m_ErrorHelper.c_str();
+	}
+
 	const char *CheckVulkanCriticalError(VkResult CallResult)
 	{
 		const char *pCriticalError = nullptr;
@@ -1268,8 +1285,7 @@ protected:
 
 		m_aCommandCallbacks[CommandBufferCMDOff(CCommandBuffer::CMD_RENDER_TILE_LAYER)] = {true, [this](SRenderCommandExecuteBuffer &ExecBuffer, const CCommandBuffer::SCommand *pBaseCommand) { Cmd_RenderTileLayer_FillExecuteBuffer(ExecBuffer, static_cast<const CCommandBuffer::SCommand_RenderTileLayer *>(pBaseCommand)); }, [this](const CCommandBuffer::SCommand *pBaseCommand, SRenderCommandExecuteBuffer &ExecBuffer) { return Cmd_RenderTileLayer(static_cast<const CCommandBuffer::SCommand_RenderTileLayer *>(pBaseCommand), ExecBuffer); }};
 		m_aCommandCallbacks[CommandBufferCMDOff(CCommandBuffer::CMD_RENDER_BORDER_TILE)] = {true, [this](SRenderCommandExecuteBuffer &ExecBuffer, const CCommandBuffer::SCommand *pBaseCommand) { Cmd_RenderBorderTile_FillExecuteBuffer(ExecBuffer, static_cast<const CCommandBuffer::SCommand_RenderBorderTile *>(pBaseCommand)); }, [this](const CCommandBuffer::SCommand *pBaseCommand, SRenderCommandExecuteBuffer &ExecBuffer) { return Cmd_RenderBorderTile(static_cast<const CCommandBuffer::SCommand_RenderBorderTile *>(pBaseCommand), ExecBuffer); }};
-		m_aCommandCallbacks[CommandBufferCMDOff(CCommandBuffer::CMD_RENDER_QUAD_LAYER)] = {true, [this](SRenderCommandExecuteBuffer &ExecBuffer, const CCommandBuffer::SCommand *pBaseCommand) { Cmd_RenderQuadLayer_FillExecuteBuffer(ExecBuffer, static_cast<const CCommandBuffer::SCommand_RenderQuadLayer *>(pBaseCommand)); }, [this](const CCommandBuffer::SCommand *pBaseCommand, SRenderCommandExecuteBuffer &ExecBuffer) { return Cmd_RenderQuadLayer(static_cast<const CCommandBuffer::SCommand_RenderQuadLayer *>(pBaseCommand), ExecBuffer, false); }};
-		m_aCommandCallbacks[CommandBufferCMDOff(CCommandBuffer::CMD_RENDER_QUAD_LAYER_GROUPED)] = {true, [this](SRenderCommandExecuteBuffer &ExecBuffer, const CCommandBuffer::SCommand *pBaseCommand) { Cmd_RenderQuadLayer_FillExecuteBuffer(ExecBuffer, static_cast<const CCommandBuffer::SCommand_RenderQuadLayer *>(pBaseCommand)); }, [this](const CCommandBuffer::SCommand *pBaseCommand, SRenderCommandExecuteBuffer &ExecBuffer) { return Cmd_RenderQuadLayer(static_cast<const CCommandBuffer::SCommand_RenderQuadLayer *>(pBaseCommand), ExecBuffer, true); }};
+		m_aCommandCallbacks[CommandBufferCMDOff(CCommandBuffer::CMD_RENDER_QUAD_LAYER)] = {true, [this](SRenderCommandExecuteBuffer &ExecBuffer, const CCommandBuffer::SCommand *pBaseCommand) { Cmd_RenderQuadLayer_FillExecuteBuffer(ExecBuffer, static_cast<const CCommandBuffer::SCommand_RenderQuadLayer *>(pBaseCommand)); }, [this](const CCommandBuffer::SCommand *pBaseCommand, SRenderCommandExecuteBuffer &ExecBuffer) { return Cmd_RenderQuadLayer(static_cast<const CCommandBuffer::SCommand_RenderQuadLayer *>(pBaseCommand), ExecBuffer); }};
 		m_aCommandCallbacks[CommandBufferCMDOff(CCommandBuffer::CMD_RENDER_TEXT)] = {true, [this](SRenderCommandExecuteBuffer &ExecBuffer, const CCommandBuffer::SCommand *pBaseCommand) { Cmd_RenderText_FillExecuteBuffer(ExecBuffer, static_cast<const CCommandBuffer::SCommand_RenderText *>(pBaseCommand)); }, [this](const CCommandBuffer::SCommand *pBaseCommand, SRenderCommandExecuteBuffer &ExecBuffer) { return Cmd_RenderText(static_cast<const CCommandBuffer::SCommand_RenderText *>(pBaseCommand), ExecBuffer); }};
 		m_aCommandCallbacks[CommandBufferCMDOff(CCommandBuffer::CMD_RENDER_QUAD_CONTAINER)] = {true, [this](SRenderCommandExecuteBuffer &ExecBuffer, const CCommandBuffer::SCommand *pBaseCommand) { Cmd_RenderQuadContainer_FillExecuteBuffer(ExecBuffer, static_cast<const CCommandBuffer::SCommand_RenderQuadContainer *>(pBaseCommand)); }, [this](const CCommandBuffer::SCommand *pBaseCommand, SRenderCommandExecuteBuffer &ExecBuffer) { return Cmd_RenderQuadContainer(static_cast<const CCommandBuffer::SCommand_RenderQuadContainer *>(pBaseCommand), ExecBuffer); }};
 		m_aCommandCallbacks[CommandBufferCMDOff(CCommandBuffer::CMD_RENDER_QUAD_CONTAINER_EX)] = {true, [this](SRenderCommandExecuteBuffer &ExecBuffer, const CCommandBuffer::SCommand *pBaseCommand) { Cmd_RenderQuadContainerEx_FillExecuteBuffer(ExecBuffer, static_cast<const CCommandBuffer::SCommand_RenderQuadContainerEx *>(pBaseCommand)); }, [this](const CCommandBuffer::SCommand *pBaseCommand, SRenderCommandExecuteBuffer &ExecBuffer) { return Cmd_RenderQuadContainerEx(static_cast<const CCommandBuffer::SCommand_RenderQuadContainerEx *>(pBaseCommand), ExecBuffer); }};
@@ -1625,7 +1641,8 @@ protected:
 				{
 					if(vkMapMemory(m_VKDevice, TmpBufferMemory.m_Mem, 0, VK_WHOLE_SIZE, 0, &pMapData) != VK_SUCCESS)
 					{
-						SetError(RequiresMapping ? EGfxErrorType::GFX_ERROR_TYPE_OUT_OF_MEMORY_STAGING : EGfxErrorType::GFX_ERROR_TYPE_OUT_OF_MEMORY_BUFFER, "Failed to map buffer block memory.");
+						SetError(RequiresMapping ? EGfxErrorType::GFX_ERROR_TYPE_OUT_OF_MEMORY_STAGING : EGfxErrorType::GFX_ERROR_TYPE_OUT_OF_MEMORY_BUFFER, "Failed to map buffer block memory.",
+							GetMemoryUsageShort());
 						delete pNewHeap;
 						return false;
 					}
@@ -1641,7 +1658,8 @@ protected:
 				Heaps.back()->m_Heap.Init(MemoryBlockSize * BlockCount, 0);
 				if(!Heaps.back()->m_Heap.Allocate(RequiredSize, TargetAlignment, AllocatedMem))
 				{
-					SetError(RequiresMapping ? EGfxErrorType::GFX_ERROR_TYPE_OUT_OF_MEMORY_STAGING : EGfxErrorType::GFX_ERROR_TYPE_OUT_OF_MEMORY_BUFFER, "Heap allocation failed directly after creating fresh heap.");
+					SetError(RequiresMapping ? EGfxErrorType::GFX_ERROR_TYPE_OUT_OF_MEMORY_STAGING : EGfxErrorType::GFX_ERROR_TYPE_OUT_OF_MEMORY_BUFFER, "Heap allocation failed directly after creating fresh heap.",
+						GetMemoryUsageShort());
 					return false;
 				}
 			}
@@ -1798,7 +1816,8 @@ protected:
 
 		if(!AllocateVulkanMemory(&MemAllocInfo, &BufferMemory.m_Mem))
 		{
-			SetError(EGfxErrorType::GFX_ERROR_TYPE_OUT_OF_MEMORY_IMAGE, "Allocation for image memory failed.");
+			SetError(EGfxErrorType::GFX_ERROR_TYPE_OUT_OF_MEMORY_IMAGE, "Allocation for image memory failed.",
+				GetMemoryUsageShort());
 			return false;
 		}
 
@@ -2257,6 +2276,8 @@ protected:
 			return false;
 		}
 
+		VkSemaphore WaitSemaphore = m_vWaitSemaphores[m_CurFrameSyncObject];
+
 		VkSubmitInfo SubmitInfo{};
 		SubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
@@ -2278,19 +2299,19 @@ protected:
 			m_vUsedMemoryCommandBuffer[m_CurImageIndex] = false;
 		}
 
-		std::array<VkSemaphore, 1> aWaitSemaphores = {m_AcquireImageSemaphore};
+		std::array<VkSemaphore, 1> aWaitSemaphores = {WaitSemaphore};
 		std::array<VkPipelineStageFlags, 1> aWaitStages = {(VkPipelineStageFlags)VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 		SubmitInfo.waitSemaphoreCount = aWaitSemaphores.size();
 		SubmitInfo.pWaitSemaphores = aWaitSemaphores.data();
 		SubmitInfo.pWaitDstStageMask = aWaitStages.data();
 
-		std::array<VkSemaphore, 1> aSignalSemaphores = {m_vQueueSubmitSemaphores[m_CurImageIndex]};
+		std::array<VkSemaphore, 1> aSignalSemaphores = {m_vSigSemaphores[m_CurFrameSyncObject]};
 		SubmitInfo.signalSemaphoreCount = aSignalSemaphores.size();
 		SubmitInfo.pSignalSemaphores = aSignalSemaphores.data();
 
-		vkResetFences(m_VKDevice, 1, &m_vQueueSubmitFences[m_CurImageIndex]);
+		vkResetFences(m_VKDevice, 1, &m_vFrameFences[m_CurFrameSyncObject]);
 
-		VkResult QueueSubmitRes = vkQueueSubmit(m_VKGraphicsQueue, 1, &SubmitInfo, m_vQueueSubmitFences[m_CurImageIndex]);
+		VkResult QueueSubmitRes = vkQueueSubmit(m_VKGraphicsQueue, 1, &SubmitInfo, m_vFrameFences[m_CurFrameSyncObject]);
 		if(QueueSubmitRes != VK_SUCCESS)
 		{
 			const char *pCritErrorMsg = CheckVulkanCriticalError(QueueSubmitRes);
@@ -2301,7 +2322,7 @@ protected:
 			}
 		}
 
-		std::swap(m_vBusyAcquireImageSemaphores[m_CurImageIndex], m_AcquireImageSemaphore);
+		std::swap(m_vWaitSemaphores[m_CurFrameSyncObject], m_vSigSemaphores[m_CurFrameSyncObject]);
 
 		VkPresentInfoKHR PresentInfo{};
 		PresentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -2328,6 +2349,7 @@ protected:
 			}
 		}
 
+		m_CurFrameSyncObject = (m_CurFrameSyncObject + 1) % m_vWaitSemaphores.size();
 		return true;
 	}
 
@@ -2343,7 +2365,7 @@ protected:
 			RecreateSwapChain();
 		}
 
-		auto AcqResult = vkAcquireNextImageKHR(m_VKDevice, m_VKSwapChain, std::numeric_limits<uint64_t>::max(), m_AcquireImageSemaphore, VK_NULL_HANDLE, &m_CurImageIndex);
+		auto AcqResult = vkAcquireNextImageKHR(m_VKDevice, m_VKSwapChain, std::numeric_limits<uint64_t>::max(), m_vSigSemaphores[m_CurFrameSyncObject], VK_NULL_HANDLE, &m_CurImageIndex);
 		if(AcqResult != VK_SUCCESS)
 		{
 			if(AcqResult == VK_ERROR_OUT_OF_DATE_KHR || m_RecreateSwapChain)
@@ -2374,8 +2396,13 @@ protected:
 				}
 			}
 		}
+		std::swap(m_vWaitSemaphores[m_CurFrameSyncObject], m_vSigSemaphores[m_CurFrameSyncObject]);
 
-		vkWaitForFences(m_VKDevice, 1, &m_vQueueSubmitFences[m_CurImageIndex], VK_TRUE, std::numeric_limits<uint64_t>::max());
+		if(m_vImagesFences[m_CurImageIndex] != VK_NULL_HANDLE)
+		{
+			vkWaitForFences(m_VKDevice, 1, &m_vImagesFences[m_CurImageIndex], VK_TRUE, std::numeric_limits<uint64_t>::max());
+		}
+		m_vImagesFences[m_CurImageIndex] = m_vFrameFences[m_CurFrameSyncObject];
 
 		// next frame
 		m_CurFrame++;
@@ -2387,8 +2414,12 @@ protected:
 			auto LastFrame = m_vImageLastFrameCheck[FrameImageIndex];
 			if(m_CurFrame - LastFrame > (uint64_t)m_SwapChainImageCount)
 			{
-				vkWaitForFences(m_VKDevice, 1, &m_vQueueSubmitFences[FrameImageIndex], VK_TRUE, std::numeric_limits<uint64_t>::max());
-				ClearFrameData(FrameImageIndex);
+				if(m_vImagesFences[FrameImageIndex] != VK_NULL_HANDLE)
+				{
+					vkWaitForFences(m_VKDevice, 1, &m_vImagesFences[FrameImageIndex], VK_TRUE, std::numeric_limits<uint64_t>::max());
+					ClearFrameData(FrameImageIndex);
+					m_vImagesFences[FrameImageIndex] = VK_NULL_HANDLE;
+				}
 				m_vImageLastFrameCheck[FrameImageIndex] = m_CurFrame;
 			}
 		}
@@ -3269,11 +3300,11 @@ protected:
 				Scissor.extent.height = (uint32_t)(((float)Scissor.extent.height / (float)ScissorViewport.height) * (float)m_DynamicViewportSize.height);
 			}
 
-			Viewport.x = std::clamp(Viewport.x, 0.0f, std::numeric_limits<decltype(Viewport.x)>::max());
-			Viewport.y = std::clamp(Viewport.y, 0.0f, std::numeric_limits<decltype(Viewport.y)>::max());
+			Viewport.x = clamp(Viewport.x, 0.0f, std::numeric_limits<decltype(Viewport.x)>::max());
+			Viewport.y = clamp(Viewport.y, 0.0f, std::numeric_limits<decltype(Viewport.y)>::max());
 
-			Scissor.offset.x = std::clamp(Scissor.offset.x, 0, std::numeric_limits<decltype(Scissor.offset.x)>::max());
-			Scissor.offset.y = std::clamp(Scissor.offset.y, 0, std::numeric_limits<decltype(Scissor.offset.y)>::max());
+			Scissor.offset.x = clamp(Scissor.offset.x, 0, std::numeric_limits<decltype(Scissor.offset.x)>::max());
+			Scissor.offset.y = clamp(Scissor.offset.y, 0, std::numeric_limits<decltype(Scissor.offset.y)>::max());
 
 			ExecBuffer.m_HasDynamicState = true;
 			ExecBuffer.m_Viewport = Viewport;
@@ -3474,7 +3505,6 @@ public:
 			return false;
 		}
 
-		vVKExtensions.reserve(ExtCount);
 		for(uint32_t i = 0; i < ExtCount; i++)
 		{
 			vVKExtensions.emplace_back(vExtensionList[i]);
@@ -3536,7 +3566,8 @@ public:
 		vVKLayers.clear();
 		for(const auto &LayerName : vVKInstanceLayers)
 		{
-			if(ReqLayerNames.contains(std::string(LayerName.layerName)))
+			auto it = ReqLayerNames.find(std::string(LayerName.layerName));
+			if(it != ReqLayerNames.end())
 			{
 				vVKLayers.emplace_back(LayerName.layerName);
 			}
@@ -3769,7 +3800,7 @@ public:
 
 		if(m_pGpuList->m_vGpus.empty())
 		{
-			SetWarning(EGfxWarningType::GFX_WARNING_TYPE_INIT_FAILED_NO_DEVICE_WITH_REQUIRED_VERSION, "No devices with required vulkan version found.");
+			dbg_msg("vulkan", "no devices with required vulkan version found.");
 			return false;
 		}
 
@@ -3897,7 +3928,8 @@ public:
 
 		for(const auto &CurExtProp : vDevPropList)
 		{
-			if(OurDevExt.contains(std::string(CurExtProp.extensionName)))
+			auto it = OurDevExt.find(std::string(CurExtProp.extensionName));
+			if(it != OurDevExt.end())
 			{
 				vDevPropCNames.emplace_back(CurExtProp.extensionName);
 			}
@@ -4023,8 +4055,8 @@ public:
 
 		if(VKCapabilities.currentExtent.width == std::numeric_limits<uint32_t>::max())
 		{
-			RetSize.width = std::clamp<uint32_t>(RetSize.width, VKCapabilities.minImageExtent.width, VKCapabilities.maxImageExtent.width);
-			RetSize.height = std::clamp<uint32_t>(RetSize.height, VKCapabilities.minImageExtent.height, VKCapabilities.maxImageExtent.height);
+			RetSize.width = clamp<uint32_t>(RetSize.width, VKCapabilities.minImageExtent.width, VKCapabilities.maxImageExtent.width);
+			RetSize.height = clamp<uint32_t>(RetSize.height, VKCapabilities.minImageExtent.height, VKCapabilities.maxImageExtent.height);
 		}
 		else
 		{
@@ -5174,7 +5206,7 @@ public:
 	}
 
 	template<bool IsTextured>
-	[[nodiscard]] bool CreateQuadGroupedGraphicsPipelineImpl(const char *pVertName, const char *pFragName, SPipelineContainer &PipeContainer, EVulkanBackendTextureModes TexMode, EVulkanBackendBlendModes BlendMode, EVulkanBackendClipModes DynamicMode)
+	[[nodiscard]] bool CreateQuadPushGraphicsPipelineImpl(const char *pVertName, const char *pFragName, SPipelineContainer &PipeContainer, EVulkanBackendTextureModes TexMode, EVulkanBackendBlendModes BlendMode, EVulkanBackendClipModes DynamicMode)
 	{
 		std::array<VkVertexInputAttributeDescription, IsTextured ? 3 : 2> aAttributeDescriptions = {};
 		aAttributeDescriptions[0] = {0, 0, VK_FORMAT_R32G32B32A32_SFLOAT, 0};
@@ -5185,7 +5217,7 @@ public:
 		std::array<VkDescriptorSetLayout, 1> aSetLayouts;
 		aSetLayouts[0] = m_StandardTexturedDescriptorSetLayout;
 
-		uint32_t PushConstantSize = sizeof(SUniformQuadGroupedGPos);
+		uint32_t PushConstantSize = sizeof(SUniformQuadPushGPos);
 
 		std::array<VkPushConstantRange, 1> aPushConstants{};
 		aPushConstants[0] = {VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, PushConstantSize};
@@ -5194,7 +5226,7 @@ public:
 	}
 
 	template<bool HasSampler>
-	[[nodiscard]] bool CreateQuadGroupedGraphicsPipeline(const char *pVertName, const char *pFragName)
+	[[nodiscard]] bool CreateQuadPushGraphicsPipeline(const char *pVertName, const char *pFragName)
 	{
 		bool Ret = true;
 
@@ -5204,7 +5236,7 @@ public:
 		{
 			for(size_t j = 0; j < VULKAN_BACKEND_CLIP_MODE_COUNT; ++j)
 			{
-				Ret &= CreateQuadGroupedGraphicsPipelineImpl<HasSampler>(pVertName, pFragName, m_QuadGroupedPipeline, TexMode, EVulkanBackendBlendModes(i), EVulkanBackendClipModes(j));
+				Ret &= CreateQuadPushGraphicsPipelineImpl<HasSampler>(pVertName, pFragName, m_QuadPushPipeline, TexMode, EVulkanBackendBlendModes(i), EVulkanBackendClipModes(j));
 			}
 		}
 
@@ -5324,11 +5356,13 @@ public:
 
 	[[nodiscard]] bool CreateSyncObjects()
 	{
-		auto SyncObjectCount = m_SwapChainImageCount;
-		m_vQueueSubmitSemaphores.resize(SyncObjectCount);
-		m_vBusyAcquireImageSemaphores.resize(SyncObjectCount);
+		// Create one more sync object than there are frames in flight
+		auto SyncObjectCount = m_SwapChainImageCount + 1;
+		m_vWaitSemaphores.resize(SyncObjectCount);
+		m_vSigSemaphores.resize(SyncObjectCount);
 
-		m_vQueueSubmitFences.resize(SyncObjectCount);
+		m_vFrameFences.resize(SyncObjectCount);
+		m_vImagesFences.resize(m_SwapChainImageCount, VK_NULL_HANDLE);
 
 		VkSemaphoreCreateInfo CreateSemaphoreInfo{};
 		CreateSemaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -5337,16 +5371,11 @@ public:
 		FenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 		FenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-		if(vkCreateSemaphore(m_VKDevice, &CreateSemaphoreInfo, nullptr, &m_AcquireImageSemaphore) != VK_SUCCESS)
-		{
-			SetError(EGfxErrorType::GFX_ERROR_TYPE_INIT, "Creating acquire next image semaphore failed.");
-			return false;
-		}
 		for(size_t i = 0; i < SyncObjectCount; i++)
 		{
-			if(vkCreateSemaphore(m_VKDevice, &CreateSemaphoreInfo, nullptr, &m_vQueueSubmitSemaphores[i]) != VK_SUCCESS ||
-				vkCreateSemaphore(m_VKDevice, &CreateSemaphoreInfo, nullptr, &m_vBusyAcquireImageSemaphores[i]) != VK_SUCCESS ||
-				vkCreateFence(m_VKDevice, &FenceInfo, nullptr, &m_vQueueSubmitFences[i]) != VK_SUCCESS)
+			if(vkCreateSemaphore(m_VKDevice, &CreateSemaphoreInfo, nullptr, &m_vWaitSemaphores[i]) != VK_SUCCESS ||
+				vkCreateSemaphore(m_VKDevice, &CreateSemaphoreInfo, nullptr, &m_vSigSemaphores[i]) != VK_SUCCESS ||
+				vkCreateFence(m_VKDevice, &FenceInfo, nullptr, &m_vFrameFences[i]) != VK_SUCCESS)
 			{
 				SetError(EGfxErrorType::GFX_ERROR_TYPE_INIT, "Creating swap chain sync objects(fences, semaphores) failed.");
 				return false;
@@ -5358,18 +5387,20 @@ public:
 
 	void DestroySyncObjects()
 	{
-		for(size_t i = 0; i < m_vBusyAcquireImageSemaphores.size(); i++)
+		for(size_t i = 0; i < m_vWaitSemaphores.size(); i++)
 		{
-			vkDestroySemaphore(m_VKDevice, m_vBusyAcquireImageSemaphores[i], nullptr);
-			vkDestroySemaphore(m_VKDevice, m_vQueueSubmitSemaphores[i], nullptr);
-			vkDestroyFence(m_VKDevice, m_vQueueSubmitFences[i], nullptr);
+			vkDestroySemaphore(m_VKDevice, m_vWaitSemaphores[i], nullptr);
+			vkDestroySemaphore(m_VKDevice, m_vSigSemaphores[i], nullptr);
+			vkDestroyFence(m_VKDevice, m_vFrameFences[i], nullptr);
 		}
-		vkDestroySemaphore(m_VKDevice, m_AcquireImageSemaphore, nullptr);
 
-		m_vBusyAcquireImageSemaphores.clear();
-		m_vQueueSubmitSemaphores.clear();
+		m_vWaitSemaphores.clear();
+		m_vSigSemaphores.clear();
 
-		m_vQueueSubmitFences.clear();
+		m_vFrameFences.clear();
+		m_vImagesFences.clear();
+
+		m_CurFrameSyncObject = 0;
 	}
 
 	void DestroyBufferOfFrame(size_t ImageIndex, SFrameBuffers &Buffer)
@@ -5406,7 +5437,7 @@ public:
 		m_SpriteMultiPipeline.Destroy(m_VKDevice);
 		m_SpriteMultiPushPipeline.Destroy(m_VKDevice);
 		m_QuadPipeline.Destroy(m_VKDevice);
-		m_QuadGroupedPipeline.Destroy(m_VKDevice);
+		m_QuadPushPipeline.Destroy(m_VKDevice);
 
 		DestroyFramebuffers();
 
@@ -5640,7 +5671,8 @@ public:
 
 		if(vkCreateBuffer(m_VKDevice, &BufferInfo, nullptr, &VKBuffer) != VK_SUCCESS)
 		{
-			SetError(EGfxErrorType::GFX_ERROR_TYPE_OUT_OF_MEMORY_BUFFER, "Buffer creation failed.");
+			SetError(EGfxErrorType::GFX_ERROR_TYPE_OUT_OF_MEMORY_BUFFER, "Buffer creation failed.",
+				GetMemoryUsageShort());
 			return false;
 		}
 
@@ -5668,7 +5700,8 @@ public:
 
 		if(!AllocateVulkanMemory(&MemAllocInfo, &VKBufferMemory.m_Mem))
 		{
-			SetError(EGfxErrorType::GFX_ERROR_TYPE_OUT_OF_MEMORY_BUFFER, "Allocation for buffer object failed.");
+			SetError(EGfxErrorType::GFX_ERROR_TYPE_OUT_OF_MEMORY_BUFFER, "Allocation for buffer object failed.",
+				GetMemoryUsageShort());
 			return false;
 		}
 
@@ -5676,7 +5709,8 @@ public:
 
 		if(vkBindBufferMemory(m_VKDevice, VKBuffer, VKBufferMemory.m_Mem, 0) != VK_SUCCESS)
 		{
-			SetError(EGfxErrorType::GFX_ERROR_TYPE_OUT_OF_MEMORY_BUFFER, "Binding memory to buffer failed.");
+			SetError(EGfxErrorType::GFX_ERROR_TYPE_OUT_OF_MEMORY_BUFFER, "Binding memory to buffer failed.",
+				GetMemoryUsageShort());
 			return false;
 		}
 
@@ -6090,10 +6124,10 @@ public:
 		if(!CreateQuadGraphicsPipeline<true>("shader/vulkan/quad_textured.vert.spv", "shader/vulkan/quad_textured.frag.spv"))
 			return -1;
 
-		if(!CreateQuadGroupedGraphicsPipeline<false>("shader/vulkan/quad_grouped.vert.spv", "shader/vulkan/quad_grouped.frag.spv"))
+		if(!CreateQuadPushGraphicsPipeline<false>("shader/vulkan/quad_push.vert.spv", "shader/vulkan/quad_push.frag.spv"))
 			return -1;
 
-		if(!CreateQuadGroupedGraphicsPipeline<true>("shader/vulkan/quad_grouped_textured.vert.spv", "shader/vulkan/quad_grouped_textured.frag.spv"))
+		if(!CreateQuadPushGraphicsPipeline<true>("shader/vulkan/quad_push_textured.vert.spv", "shader/vulkan/quad_push_textured.frag.spv"))
 			return -1;
 
 		m_SwapchainCreated = true;
@@ -6334,7 +6368,8 @@ public:
 		// Offset here is the offset in the buffer
 		if(BufferMem.m_Size - Offset < DataSize)
 		{
-			SetError(EGfxErrorType::GFX_ERROR_TYPE_OUT_OF_MEMORY_BUFFER, "Stream buffers are limited to CCommandBuffer::MAX_VERTICES. Exceeding it is a bug in the high level code.");
+			SetError(EGfxErrorType::GFX_ERROR_TYPE_OUT_OF_MEMORY_BUFFER, "Stream buffers are limited to CCommandBuffer::MAX_VERTICES. Exceeding it is a bug in the high level code.",
+				GetMemoryUsageShort());
 			return false;
 		}
 
@@ -7092,20 +7127,20 @@ public:
 		ExecBufferFillDynamicStates(pCommand->m_State, ExecBuffer);
 	}
 
-	[[nodiscard]] bool Cmd_RenderQuadLayer(const CCommandBuffer::SCommand_RenderQuadLayer *pCommand, SRenderCommandExecuteBuffer &ExecBuffer, bool Grouped)
+	[[nodiscard]] bool Cmd_RenderQuadLayer(const CCommandBuffer::SCommand_RenderQuadLayer *pCommand, SRenderCommandExecuteBuffer &ExecBuffer)
 	{
 		std::array<float, (size_t)4 * 2> m;
 		GetStateMatrix(pCommand->m_State, m);
 
-		bool CanBeGrouped = Grouped || pCommand->m_QuadNum == 1;
+		bool CanBePushed = pCommand->m_QuadNum == 1;
 
 		bool IsTextured;
 		size_t BlendModeIndex;
 		size_t DynamicIndex;
 		size_t AddressModeIndex;
 		GetStateIndices(ExecBuffer, pCommand->m_State, IsTextured, BlendModeIndex, DynamicIndex, AddressModeIndex);
-		auto &PipeLayout = GetPipeLayout(CanBeGrouped ? m_QuadGroupedPipeline : m_QuadPipeline, IsTextured, BlendModeIndex, DynamicIndex);
-		auto &PipeLine = GetPipeline(CanBeGrouped ? m_QuadGroupedPipeline : m_QuadPipeline, IsTextured, BlendModeIndex, DynamicIndex);
+		auto &PipeLayout = GetPipeLayout(CanBePushed ? m_QuadPushPipeline : m_QuadPipeline, IsTextured, BlendModeIndex, DynamicIndex);
+		auto &PipeLine = GetPipeline(CanBePushed ? m_QuadPushPipeline : m_QuadPipeline, IsTextured, BlendModeIndex, DynamicIndex);
 
 		VkCommandBuffer *pCommandBuffer;
 		if(!GetGraphicCommandBuffer(pCommandBuffer, ExecBuffer.m_ThreadIndex))
@@ -7125,18 +7160,16 @@ public:
 			vkCmdBindDescriptorSets(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, PipeLayout, 0, 1, &ExecBuffer.m_aDescriptors[0].m_Descriptor, 0, nullptr);
 		}
 
-		uint32_t DrawCount = (uint32_t)pCommand->m_QuadNum;
-
-		if(CanBeGrouped)
+		if(CanBePushed)
 		{
-			SUniformQuadGroupedGPos PushConstantVertex;
+			SUniformQuadPushGPos PushConstantVertex;
+
 			mem_copy(&PushConstantVertex.m_BOPush, &pCommand->m_pQuadInfo[0], sizeof(PushConstantVertex.m_BOPush));
 
 			mem_copy(PushConstantVertex.m_aPos, m.data(), sizeof(PushConstantVertex.m_aPos));
-			vkCmdPushConstants(CommandBuffer, PipeLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(SUniformQuadGroupedGPos), &PushConstantVertex);
+			PushConstantVertex.m_QuadOffset = pCommand->m_QuadOffset;
 
-			VkDeviceSize IndexOffset = (VkDeviceSize)((ptrdiff_t)(pCommand->m_QuadOffset) * 6);
-			vkCmdDrawIndexed(CommandBuffer, static_cast<uint32_t>(DrawCount * 6), 1, IndexOffset, 0, 0);
+			vkCmdPushConstants(CommandBuffer, PipeLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(SUniformQuadPushGPos), &PushConstantVertex);
 		}
 		else
 		{
@@ -7145,13 +7178,18 @@ public:
 			PushConstantVertex.m_QuadOffset = pCommand->m_QuadOffset;
 
 			vkCmdPushConstants(CommandBuffer, PipeLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstantVertex), &PushConstantVertex);
+		}
 
-			size_t RenderOffset = 0;
-			while(DrawCount > 0)
+		uint32_t DrawCount = (uint32_t)pCommand->m_QuadNum;
+		size_t RenderOffset = 0;
+
+		while(DrawCount > 0)
+		{
+			uint32_t RealDrawCount = (DrawCount > gs_GraphicsMaxQuadsRenderCount ? gs_GraphicsMaxQuadsRenderCount : DrawCount);
+
+			VkDeviceSize IndexOffset = (VkDeviceSize)((ptrdiff_t)(pCommand->m_QuadOffset + RenderOffset) * 6);
+			if(!CanBePushed)
 			{
-				uint32_t RealDrawCount = (DrawCount > gs_GraphicsMaxQuadsRenderCount ? gs_GraphicsMaxQuadsRenderCount : DrawCount);
-				VkDeviceSize IndexOffset = (VkDeviceSize)((ptrdiff_t)(pCommand->m_QuadOffset + RenderOffset) * 6);
-
 				// create uniform buffer
 				SDeviceDescriptorSet UniDescrSet;
 				if(!GetUniformBufferObject(ExecBuffer.m_ThreadIndex, true, UniDescrSet, RealDrawCount, (const float *)(pCommand->m_pQuadInfo + RenderOffset), RealDrawCount * sizeof(SQuadRenderInfo)))
@@ -7163,11 +7201,12 @@ public:
 					int32_t QuadOffset = pCommand->m_QuadOffset + RenderOffset;
 					vkCmdPushConstants(CommandBuffer, PipeLayout, VK_SHADER_STAGE_VERTEX_BIT, sizeof(SUniformQuadGPos) - sizeof(int32_t), sizeof(int32_t), &QuadOffset);
 				}
-
-				vkCmdDrawIndexed(CommandBuffer, static_cast<uint32_t>(RealDrawCount * 6), 1, IndexOffset, 0, 0);
-				RenderOffset += RealDrawCount;
-				DrawCount -= RealDrawCount;
 			}
+
+			vkCmdDrawIndexed(CommandBuffer, static_cast<uint32_t>(RealDrawCount * 6), 1, IndexOffset, 0, 0);
+
+			RenderOffset += RealDrawCount;
+			DrawCount -= RealDrawCount;
 		}
 
 		return true;
@@ -7514,7 +7553,7 @@ public:
 			m_ThreadCount = 1;
 		else
 		{
-			m_ThreadCount = std::clamp<decltype(m_ThreadCount)>(m_ThreadCount, 3, std::max<decltype(m_ThreadCount)>(3, std::thread::hardware_concurrency()));
+			m_ThreadCount = clamp<decltype(m_ThreadCount)>(m_ThreadCount, 3, std::max<decltype(m_ThreadCount)>(3, std::thread::hardware_concurrency()));
 		}
 
 		// start threads
@@ -7528,7 +7567,6 @@ public:
 				ThreadCommandList.reserve(256);
 			}
 
-			m_vpRenderThreads.reserve(m_ThreadCount - 1);
 			for(size_t i = 0; i < m_ThreadCount - 1; ++i)
 			{
 				auto *pRenderThread = new SRenderThread();

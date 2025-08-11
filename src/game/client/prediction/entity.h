@@ -40,9 +40,8 @@ public:
 	CEntity *TypePrev() { return m_pPrevTypeEntity; }
 	const vec2 &GetPos() const { return m_Pos; }
 	float GetProximityRadius() const { return m_ProximityRadius; }
-	virtual bool CanCollide(int ClientId) { return true; }
 
-	virtual void Destroy() { delete this; }
+	void Destroy() { delete this; }
 	virtual void PreTick() {}
 	virtual void Tick() {}
 	virtual void TickDeferred() {}

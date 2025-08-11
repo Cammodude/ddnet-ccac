@@ -7,17 +7,17 @@
 
 #include <game/gamecore.h>
 #include <game/generated/protocol.h>
-#include <game/race_state.h>
 
 enum
 {
-	FAKETUNE_FREEZE = 1 << 0,
-	FAKETUNE_SOLO = 1 << 1,
-	FAKETUNE_NOJUMP = 1 << 2,
-	FAKETUNE_NOCOLL = 1 << 3,
-	FAKETUNE_NOHOOK = 1 << 4,
-	FAKETUNE_JETPACK = 1 << 5,
-	FAKETUNE_NOHAMMER = 1 << 6,
+	FAKETUNE_FREEZE = 1,
+	FAKETUNE_SOLO = 2,
+	FAKETUNE_NOJUMP = 4,
+	FAKETUNE_NOCOLL = 8,
+	FAKETUNE_NOHOOK = 16,
+	FAKETUNE_JETPACK = 32,
+	FAKETUNE_NOHAMMER = 64,
+
 };
 
 class CCharacter : public CEntity
@@ -33,7 +33,7 @@ public:
 
 	bool IsGrounded();
 
-	void SetWeapon(int Weapon);
+	void SetWeapon(int W);
 	void SetSolo(bool Solo);
 	void SetSuper(bool Super);
 	void HandleWeaponSwitch();
@@ -43,8 +43,8 @@ public:
 	void HandleNinja();
 	void HandleJetpack();
 
-	void OnPredictedInput(const CNetObj_PlayerInput *pNewInput);
-	void OnDirectInput(const CNetObj_PlayerInput *pNewInput);
+	void OnPredictedInput(CNetObj_PlayerInput *pNewInput);
+	void OnDirectInput(CNetObj_PlayerInput *pNewInput);
 	void ReleaseHook();
 	void ResetHook();
 	void ResetInput();
@@ -70,7 +70,7 @@ public:
 	bool UnFreeze();
 	void GiveAllWeapons();
 	int Team();
-	bool CanCollide(int ClientId) override;
+	bool CanCollide(int ClientId);
 	bool SameTeam(int ClientId);
 	bool m_NinjaJetpack;
 	int m_FreezeTime;
@@ -88,7 +88,7 @@ public:
 	int GetLastWeapon() { return m_LastWeapon; }
 	void SetLastWeapon(int LastWeap) { m_LastWeapon = LastWeap; }
 	int GetActiveWeapon() { return m_Core.m_ActiveWeapon; }
-	void SetActiveWeapon(int ActiveWeapon);
+	void SetActiveWeapon(int ActiveWeap);
 	CCharacterCore GetCore() { return m_Core; }
 	void SetCore(CCharacterCore Core) { m_Core = Core; }
 	const CCharacterCore *Core() const { return &m_Core; }
@@ -118,6 +118,7 @@ public:
 	void SetCoreWorld(CGameWorld *pGameWorld);
 
 	int m_LastSnapWeapon;
+	int m_LastJetpackStrength;
 	bool m_KeepHooked;
 	int m_GameTeam;
 	bool m_CanMoveInFreeze;
@@ -181,6 +182,14 @@ private:
 
 	int m_LastWeaponSwitchTick;
 	int m_LastTuneZoneTick;
+};
+
+enum
+{
+	DDRACE_NONE = 0,
+	DDRACE_STARTED,
+	DDRACE_CHEAT, // no time and won't start again unless ordered by a mod or death
+	DDRACE_FINISHED
 };
 
 #endif

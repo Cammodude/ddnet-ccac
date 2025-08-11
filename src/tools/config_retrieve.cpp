@@ -3,7 +3,7 @@
 #include <engine/storage.h>
 #include <game/mapitems.h>
 
-static void Process(IStorage *pStorage, const char *pMapName, const char *pConfigName)
+void Process(IStorage *pStorage, const char *pMapName, const char *pConfigName)
 {
 	CDataFileReader Reader;
 	if(!Reader.Open(pStorage, pMapName, IStorage::TYPE_ABSOLUTE))

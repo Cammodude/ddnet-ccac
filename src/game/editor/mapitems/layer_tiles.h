@@ -101,7 +101,7 @@ public:
 	CLayerTiles(const CLayerTiles &Other);
 	~CLayerTiles();
 
-	[[nodiscard]] virtual CTile GetTile(int x, int y) const;
+	virtual CTile GetTile(int x, int y);
 	virtual void SetTile(int x, int y, CTile Tile);
 	void SetTileIgnoreHistory(int x, int y, CTile Tile) const;
 
@@ -117,9 +117,9 @@ public:
 	void Snap(CUIRect *pRect) const;
 	void Clamp(RECTi *pRect) const;
 
-	bool IsEntitiesLayer() const override;
+	virtual bool IsEntitiesLayer() const override;
 
-	[[nodiscard]] virtual bool IsEmpty() const;
+	virtual bool IsEmpty(const std::shared_ptr<CLayerTiles> &pLayer);
 	void BrushSelecting(CUIRect Rect) override;
 	int BrushGrab(std::shared_ptr<CLayerGroup> pBrush, CUIRect Rect) override;
 	void FillSelection(bool Empty, std::shared_ptr<CLayer> pBrush, CUIRect Rect) override;
@@ -150,8 +150,8 @@ public:
 	};
 	static CUi::EPopupMenuFunctionResult RenderCommonProperties(SCommonPropState &State, CEditor *pEditor, CUIRect *pToolbox, std::vector<std::shared_ptr<CLayerTiles>> &vpLayers, std::vector<int> &vLayerIndices);
 
-	void ModifyImageIndex(const FIndexModifyFunction &IndexModifyFunction) override;
-	void ModifyEnvelopeIndex(const FIndexModifyFunction &IndexModifyFunction) override;
+	void ModifyImageIndex(FIndexModifyFunction pfnFunc) override;
+	void ModifyEnvelopeIndex(FIndexModifyFunction pfnFunc) override;
 
 	void PrepareForSave();
 	void ExtractTiles(int TilemapItemVersion, const CTile *pSavedTiles, size_t SavedTilesSize) const;
@@ -164,7 +164,7 @@ public:
 
 	void FlagModified(int x, int y, int w, int h);
 
-	bool m_HasGame;
+	int m_Game;
 	int m_Image;
 	int m_Width;
 	int m_Height;
@@ -175,19 +175,16 @@ public:
 
 	// DDRace
 
-	int m_FillGameTile = -1;
-	bool m_LiveGameTiles = false;
 	int m_AutoMapperConfig;
 	int m_AutoMapperReference;
 	int m_Seed;
 	bool m_AutoAutoMap;
-	bool m_HasTele;
-	bool m_HasSpeedup;
-	bool m_HasFront;
-	bool m_HasSwitch;
-	bool m_HasTune;
+	int m_Tele;
+	int m_Speedup;
+	int m_Front;
+	int m_Switch;
+	int m_Tune;
 	char m_aFileName[IO_MAX_PATH_LENGTH];
-	bool m_KnownTextModeLayer = false;
 
 	EditorTileStateChangeHistory<STileStateChange> m_TilesHistory;
 	inline virtual void ClearHistory() { m_TilesHistory.clear(); }

@@ -34,12 +34,17 @@ CBackgroundEngineMap *CBackground::CreateBGMap()
 	return new CBackgroundEngineMap;
 }
 
+const char *CBackground::LoadingTitle() const
+{
+	return Localize("Loading background map");
+}
+
 void CBackground::OnInit()
 {
 	m_pBackgroundMap = CreateBGMap();
 	m_pMap = m_pBackgroundMap;
 
-	m_pImages->OnInterfacesInit(GameClient());
+	m_pImages->m_pClient = GameClient();
 	Kernel()->RegisterInterface(m_pBackgroundMap);
 	if(g_Config.m_ClBackgroundEntities[0] != '\0' && str_comp(g_Config.m_ClBackgroundEntities, CURRENT_MAP))
 		LoadBackground();

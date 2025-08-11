@@ -43,15 +43,16 @@ struct SScoreInfo
 class CHud : public CComponent
 {
 	float m_Width, m_Height;
+	float m_FrameTimeAvg;
 
 	int m_HudQuadContainerIndex;
 	SScoreInfo m_aScoreInfo[2];
 	STextContainerIndex m_FPSTextContainerIndex;
 	STextContainerIndex m_DDRaceEffectsTextContainerIndex;
 	STextContainerIndex m_PlayerAngleTextContainerIndex;
-	float m_PlayerPrevAngle;
+	char m_aPlayerAngleText[128];
 	STextContainerIndex m_aPlayerSpeedTextContainers[2];
-	float m_aPlayerPrevSpeed[2];
+	char m_aaPlayerSpeedText[2][128];
 	int m_aPlayerSpeed[2];
 	enum class ESpeedChange
 	{
@@ -61,36 +62,28 @@ class CHud : public CComponent
 	};
 	ESpeedChange m_aLastPlayerSpeedChange[2];
 	STextContainerIndex m_aPlayerPositionContainers[2];
-	float m_aPlayerPrevPosition[2];
+	char m_aaPlayerPositionText[2][128];
 
 	void RenderCursor();
 
 	void RenderTextInfo();
 	void RenderConnectionWarning();
 	void RenderTeambalanceWarning();
+	void RenderVoting();
 
 	void PrepareAmmoHealthAndArmorQuads();
 	void RenderAmmoHealthAndArmor(const CNetObj_Character *pCharacter);
 
 	void PreparePlayerStateQuads();
-	void RenderPlayerState(int ClientId);
+	void RenderPlayerState(const int ClientId);
 
 	int m_LastSpectatorCountTick;
 	void RenderSpectatorCount();
 	void RenderDummyActions();
 	void RenderMovementInformation();
 
-	void UpdateMovementInformationTextContainer(STextContainerIndex &TextContainer, float FontSize, float Value, float &PrevValue);
+	void UpdateMovementInformationTextContainer(STextContainerIndex &TextContainer, float FontSize, float Value, char *pPrevValue, size_t Size);
 	void RenderMovementInformationTextContainer(STextContainerIndex &TextContainer, const ColorRGBA &Color, float X, float Y);
-
-	class CMovementInformation
-	{
-	public:
-		vec2 m_Pos;
-		vec2 m_Speed;
-		float m_Angle = 0.0f;
-	};
-	class CMovementInformation GetMovementInformation(int ClientId, int Conn) const;
 
 	void RenderGameTimer();
 	void RenderPauseNotification();
@@ -107,19 +100,19 @@ class CHud : public CComponent
 
 public:
 	CHud();
-	int Sizeof() const override { return sizeof(*this); }
+	virtual int Sizeof() const override { return sizeof(*this); }
 
 	void ResetHudContainers();
-	void OnWindowResize() override;
-	void OnReset() override;
-	void OnRender() override;
-	void OnInit() override;
-	void OnNewSnapshot() override;
+	virtual void OnWindowResize() override;
+	virtual void OnReset() override;
+	virtual void OnRender() override;
+	virtual void OnInit() override;
+	virtual void OnNewSnapshot() override;
 
 	// DDRace
 
-	void OnMessage(int MsgType, void *pRawMsg) override;
-	void RenderNinjaBarPos(float x, float y, float Width, float Height, float Progress, float Alpha = 1.0f);
+	virtual void OnMessage(int MsgType, void *pRawMsg) override;
+	void RenderNinjaBarPos(float x, const float y, const float Width, const float Height, float Progress, float Alpha = 1.0f);
 
 private:
 	void RenderRecord();

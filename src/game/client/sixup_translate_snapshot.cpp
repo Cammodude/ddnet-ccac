@@ -117,7 +117,7 @@ int CGameClient::TranslateSnap(CSnapshot *pSnapDstSix, CSnapshot *pSnapSrcSeven,
 			Info6.m_WarmupTimer = TranslationContext.m_GameStateEndTick7 - GameTick;
 
 		// hack to port 0.7 race timer to ddnet warmup gametimer hack
-		int TimerClientId = std::clamp(TranslationContext.m_aLocalClientId[Conn], 0, (int)MAX_CLIENTS);
+		int TimerClientId = clamp(TranslationContext.m_aLocalClientId[Conn], 0, (int)MAX_CLIENTS);
 		if(SpectatorId >= 0)
 			TimerClientId = SpectatorId;
 		const protocol7::CNetObj_PlayerInfoRace *pRaceInfo = TranslationContext.m_apPlayerInfosRace[TimerClientId];
@@ -533,7 +533,8 @@ int CGameClient::OnDemoRecSnap7(CSnapshot *pFrom, CSnapshot *pTo, int Conn)
 	}
 
 	// add tuning
-	if(mem_comp(&CTuningParams::DEFAULT, &m_aTuning[Conn], sizeof(CTuningParams)) != 0)
+	CTuningParams StandardTuning;
+	if(mem_comp(&StandardTuning, &m_aTuning[Conn], sizeof(CTuningParams)) != 0)
 	{
 		void *pItem = Builder.NewItem(protocol7::NETOBJTYPE_DE_TUNEPARAMS, 0, sizeof(protocol7::CNetObj_De_TuneParams));
 		if(!pItem)

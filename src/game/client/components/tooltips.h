@@ -39,7 +39,7 @@ class CTooltips : public CComponent
 
 public:
 	CTooltips();
-	int Sizeof() const override { return sizeof(*this); }
+	virtual int Sizeof() const override { return sizeof(*this); }
 
 	/**
 	 * Adds the tooltip to a cache and renders it when active.
@@ -54,8 +54,8 @@ public:
 	 */
 	void DoToolTip(const void *pId, const CUIRect *pNearRect, const char *pText, float WidthHint = -1.0f);
 
-	void OnReset() override;
-	void OnRender() override;
+	virtual void OnReset() override;
+	virtual void OnRender() override;
 };
 
 #endif

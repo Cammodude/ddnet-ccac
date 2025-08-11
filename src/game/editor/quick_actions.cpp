@@ -169,7 +169,7 @@ void CEditor::LayerSelectImage()
 
 	static SLayerPopupContext s_LayerPopupContext = {};
 	s_LayerPopupContext.m_pEditor = this;
-	Ui()->DoPopupMenu(&s_LayerPopupContext, Ui()->MouseX(), Ui()->MouseY(), 150, 300, &s_LayerPopupContext, PopupLayer);
+	Ui()->DoPopupMenu(&s_LayerPopupContext, Ui()->MouseX(), Ui()->MouseY(), 120, 270, &s_LayerPopupContext, PopupLayer);
 	PopupSelectImageInvoke(pTiles->m_Image, Ui()->MouseX(), Ui()->MouseY());
 }
 
@@ -218,42 +218,60 @@ void CEditor::DeleteSelectedLayer()
 
 void CEditor::TestMapLocally()
 {
-	const char *pFileNameNoMaps = str_startswith(m_aFileName, "maps/");
-	if(!pFileNameNoMaps)
+	if(!str_startswith(m_aFileName, "maps/"))
 	{
 		ShowFileDialogError("The map isn't saved in the maps/ folder. It must be saved there to load on the server.");
 		return;
 	}
 
 	char aFileNameNoExt[IO_MAX_PATH_LENGTH];
-	fs_split_file_extension(pFileNameNoMaps, aFileNameNoExt, sizeof(aFileNameNoExt));
+	IStorage::StripPathAndExtension(m_aFileName, aFileNameNoExt, sizeof(aFileNameNoExt));
+	char aBuf[IO_MAX_PATH_LENGTH + 64];
 
 	if(Client()->RconAuthed())
 	{
-		if(net_addr_is_local(&Client()->ServerAddress()))
+		NETADDR Addr = Client()->ServerAddress();
+		char aAddrStr[NETADDR_MAXSTRSIZE];
+		net_addr_str(&Client()->ServerAddress(), aAddrStr, sizeof(aAddrStr), true);
+
+		bool IsLocalAddress = false;
+		if(Addr.ip[0] == 127 || Addr.ip[0] == 10 || (Addr.ip[0] == 192 && Addr.ip[1] == 168) || (Addr.ip[0] == 172 && (Addr.ip[1] >= 16 && Addr.ip[1] <= 31)))
+			IsLocalAddress = true;
+
+		if(str_startswith(aAddrStr, "[fe80:") || str_startswith(aAddrStr, "[::1"))
+			IsLocalAddress = true;
+
+		if(IsLocalAddress)
 		{
 			OnClose();
 			g_Config.m_ClEditor = 0;
-			char aMapChange[IO_MAX_PATH_LENGTH + 64];
-			str_format(aMapChange, sizeof(aMapChange), "change_map %s", aFileNameNoExt);
-			Client()->Rcon(aMapChange);
+			str_format(aBuf, sizeof(aBuf), "change_map %s", aFileNameNoExt);
+			Client()->Rcon(aBuf);
 			return;
 		}
 	}
 
 	CGameClient *pGameClient = (CGameClient *)Kernel()->RequestInterface<IGameClient>();
-	if(pGameClient->m_LocalServer.IsServerRunning())
+	if(pGameClient->m_Menus.IsServerRunning())
 	{
 		m_PopupEventType = CEditor::POPEVENT_RESTART_SERVER;
 		m_PopupEventActivated = true;
 	}
 	else
 	{
-		char aMapChange[IO_MAX_PATH_LENGTH + 64];
-		str_format(aMapChange, sizeof(aMapChange), "change_map %s", aFileNameNoExt);
-		pGameClient->m_LocalServer.RunServer({"sv_register 0", aMapChange});
+		char aRegister[] = "sv_register 0";
+
+		char aRandomPass[17];
+		secure_random_password(aRandomPass, sizeof(aRandomPass), 16);
+		char aPass[64];
+		str_format(aPass, sizeof(aPass), "sv_rcon_password %s", aRandomPass);
+
+		str_format(aBuf, sizeof(aBuf), "change_map %s", aFileNameNoExt);
+		const char *apArguments[] = {aRegister, aPass, aBuf};
+		pGameClient->m_Menus.RunServer(apArguments, std::size(apArguments));
 		OnClose();
 		g_Config.m_ClEditor = 0;
 		Client()->Connect("localhost");
+		Client()->RconAuth("", aRandomPass, g_Config.m_ClDummy);
 	}
 }

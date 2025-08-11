@@ -1,5 +1,3 @@
-#include <engine/shared/config.h>
-
 #include "mod.h"
 
 // Exchange this to a string that identifies your game mode.
