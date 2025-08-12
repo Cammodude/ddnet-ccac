@@ -32,53 +32,16 @@ using namespace std::chrono_literals;
 
 void CMenus::RenderSettingsCCAC(CUIRect MainView)
 {
-    CUIRect Button, Left, Right, Label,LeftRect,RightRect;
+    CUIRect Button, Left, Right, Label,LeftRect,RightRect,Bottom;
 	char aBuf[128];
 	MainView.HSplitTop(20.0f, &Button, &MainView);
+    MainView.HSplitMid(&MainView, &Bottom, 20.0f);
 	if(DoButton_CheckBox(&g_Config.m_CcacEnableAc, Localize("Enable anticheat features"), g_Config.m_CcacEnableAc, &Button))
 	{
 		g_Config.m_CcacEnableAc ^= 1;
 	}
-	if(!g_Config.m_CcacEnableAc)
-		return;
-	MainView.HSplitTop(5.0f, &Button, &MainView);
-    {
-		CUIRect Checkbox;
-		MainView.HSplitTop(20.0f, &Button, &MainView);
-		Button.VSplitLeft(110.0f, &Label, &Button);
-		Button.VSplitLeft(50.0f, &Button, &Checkbox);
-		Button.VSplitLeft(700.0f, &Button, 0);
-		str_format(aBuf, sizeof(aBuf), "%s:", "Online bot list");
-		Ui()->DoLabel(&Label, aBuf, 14.0f, -1);
-		static CLineInput s_NameInput;
-		s_NameInput.SetBuffer(g_Config.m_CcacBotLink, sizeof(g_Config.m_CcacBotLink));
-		s_NameInput.SetEmptyText("https://raw.githubusercontent.com/ccac52158/cdn/refs/heads/main/bots.json");
-		Ui()->DoEditBox(&s_NameInput, &Button, 14.0f);
-	}
-
-	MainView.HSplitTop(20.0f, &Button, &MainView);
-	if(DoButton_CheckBox(&g_Config.m_CcacUseLocal, Localize("Use local name list"), g_Config.m_CcacUseLocal, &Button))
-	{
-		g_Config.m_CcacUseLocal ^= 1;
-	}
-	if(g_Config.m_CcacUseLocal)
-    {
-	MainView.HSplitTop(5.0f, &Button, &MainView);
-    {
-		CUIRect Checkbox;
-		MainView.HSplitTop(20.0f, &Button, &MainView);
-		Button.VSplitLeft(110.0f, &Label, &Button);
-		Button.VSplitLeft(50.0f, &Button, &Checkbox);
-		Button.VSplitLeft(500.0f, &Button, 0);
-		str_format(aBuf, sizeof(aBuf), "%s:", "Local list names");
-		Ui()->DoLabel(&Label, aBuf, 14.0f, -1);
-		static CLineInput s_NameInput;
-		s_NameInput.SetBuffer(g_Config.m_CcacLocalNames, sizeof(g_Config.m_CcacLocalNames));
-		s_NameInput.SetEmptyText("names.txt");
-		Ui()->DoEditBox(&s_NameInput, &Button, 14.0f);
-	}
-	MainView.HSplitTop(5.0f, &Button, &MainView);
-    }
+	if(g_Config.m_CcacEnableAc)
+		{
 
 	MainView.HSplitTop(20.0f, &Button, &MainView);
 	if(DoButton_CheckBox(&g_Config.m_CcacSilentCommands, Localize("Toggle silent chat commands"), g_Config.m_CcacSilentCommands, &Button))
@@ -96,7 +59,7 @@ void CMenus::RenderSettingsCCAC(CUIRect MainView)
 		g_Config.m_CcacEnableReplay ^= 1;
 	}
 
-
+    MainView.VSplitMid(&Left, nullptr, 20.0f);
 	ColorRGBA BotDefault(0.72f, 0.23f, 0.23f, 1.0f);
 	ColorRGBA CleanDefault(0.68f, 1.0f, 0.68f, 1.0f);
 	ColorRGBA SusDefault(0.81f, 0.68f, 0.68f, 1.0f);
@@ -104,13 +67,48 @@ void CMenus::RenderSettingsCCAC(CUIRect MainView)
     const float ColorPickerLineSize = 25.0f;
     const float ColorPickerLabelSize = 13.0f;
     const float ColorPickerLineSpacing = 5.0f;
-	DoLine_ColorPicker(&s_BottingPlayerColor, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &MainView, Localize("Botting player color"), &g_Config.m_CcacBottingPlayerColor, BotDefault, false);
-    DoLine_ColorPicker(&s_SusPlayerColor, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &MainView, Localize("Unsure player color"), &g_Config.m_CcacSusPlayerColor, SusDefault, false);
-	DoLine_ColorPicker(&s_CleanPlayerColor, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &MainView, Localize("Clean player color"), &g_Config.m_CcacCleanPlayerColor, CleanDefault, false);
+	DoLine_ColorPicker(&s_BottingPlayerColor, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &Left, Localize("Botting player color"), &g_Config.m_CcacBottingPlayerColor, BotDefault, false);
+    DoLine_ColorPicker(&s_SusPlayerColor, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &Left, Localize("Unsure player color"), &g_Config.m_CcacSusPlayerColor, SusDefault, false);
+	DoLine_ColorPicker(&s_CleanPlayerColor, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &Left, Localize("Clean player color"), &g_Config.m_CcacCleanPlayerColor, CleanDefault, false);
+
+CUIRect Checkbox;
+		Bottom.HSplitTop(20.0f, &Button, &Bottom);
+		Button.VSplitLeft(110.0f, &Label, &Button);
+		Button.VSplitLeft(50.0f, &Button, &Checkbox);
+		Button.VSplitLeft(700.0f, &Button, 0);
+		str_format(aBuf, sizeof(aBuf), "%s:", "Online bot list");
+		Ui()->DoLabel(&Label, aBuf, 14.0f, -1);
+		static CLineInput s_NameInput;
+		s_NameInput.SetBuffer(g_Config.m_CcacBotLink, sizeof(g_Config.m_CcacBotLink));
+		s_NameInput.SetEmptyText("https://raw.githubusercontent.com/ccac52158/cdn/refs/heads/main/bots.json");
+		Ui()->DoEditBox(&s_NameInput, &Button, 14.0f);
+    Bottom.HSplitTop(20.0f, &Button, &Bottom);
+	if(DoButton_CheckBox(&g_Config.m_CcacUseLocal, Localize("Use local name list"), g_Config.m_CcacUseLocal, &Button))
+	{
+		g_Config.m_CcacUseLocal ^= 1;
+	}
+	if(g_Config.m_CcacUseLocal)
+    {
+	Bottom.HSplitTop(5.0f, &Button, &Bottom);
+    {
+		CUIRect Checkbox;
+		Bottom.HSplitTop(20.0f, &Button, &Bottom);
+		Button.VSplitLeft(110.0f, &Label, &Button);
+		Button.VSplitLeft(50.0f, &Button, &Checkbox);
+		Button.VSplitLeft(500.0f, &Button, 0);
+		str_format(aBuf, sizeof(aBuf), "%s:", "Local list names");
+		Ui()->DoLabel(&Label, aBuf, 14.0f, -1);
+		static CLineInput s_NameInput;
+		s_NameInput.SetBuffer(g_Config.m_CcacLocalNames, sizeof(g_Config.m_CcacLocalNames));
+		s_NameInput.SetEmptyText("names.txt");
+		Ui()->DoEditBox(&s_NameInput, &Button, 14.0f);
+	}
+    }
+}
 //=======================================================================
 
-		MainView.HSplitBottom(20.0f, &Button, &MainView);
-        MainView.VSplitMid(&LeftRect, &RightRect, 20.0f);
+		Bottom.HSplitBottom(20.0f, &Button, &Bottom);
+        Bottom.VSplitMid(&LeftRect, &RightRect, 20.0f);
         //MainView.VSplitLeft(20.0f, nullptr, &MainView);
 
 		static CButtonContainer s_ConfigButtonId;
