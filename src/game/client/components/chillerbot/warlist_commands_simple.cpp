@@ -23,6 +23,8 @@ void CWarList::AddSimpleWar(const char *pName)
 		return;
 	}
 	AddWar("bot", pName);
+    if(g_Config.m_CcacEnableReplay)
+        Replay(pName);
 }
 
 void CWarList::RemoveSimpleWar(const char *pName)
@@ -109,8 +111,12 @@ void CWarList::RemoveSimpleSus(const char *pName)
 	m_pClient->m_Chat.AddLine(-2, 0, aBuf);
 	ReloadList();
 }
-
-CClient *pClient;
+void CWarList::Replay(const char *pName)
+{
+    // Cast from IClient* to CClient* (safe here because DDNet uses CClient)
+    CClient *pEngineClient = static_cast<CClient *>(Client());
+    pEngineClient->SaveReplay(30,pName);
+}
 
 bool CWarList::OnChatCmdSimple(char Prefix, int ClientId, int Team, const char *pCmd, int NumArgs, const char **ppArgs, const char *pRawArgLine)
 {
@@ -126,8 +132,9 @@ bool CWarList::OnChatCmdSimple(char Prefix, int ClientId, int Team, const char *
 		// m_pClient->m_Chat.AddLine(-2, 0, "!search <name>");
 	}
 	else if(!str_comp(pCmd, "p") || !str_comp(pCmd, "proof")) 
-	{
-		pClient->SaveReplay(30,"abcdeftest");
+	{   
+        Replay("proof");
+        m_pClient->m_Chat.AddLine(-2, 0, "Getting proof...");
 		return true;
 	}
 	else if(!str_comp(pCmd, "b") || !str_comp(pCmd, "addwar")) // "war <name>"

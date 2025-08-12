@@ -32,7 +32,7 @@ using namespace std::chrono_literals;
 
 void CMenus::RenderSettingsCCAC(CUIRect MainView)
 {
-    CUIRect Button, Label;
+    CUIRect Button, Left, Right, Label,LeftRect,RightRect;
 	char aBuf[128];
 	MainView.HSplitTop(20.0f, &Button, &MainView);
 	if(DoButton_CheckBox(&g_Config.m_CcacEnableAc, Localize("Enable anticheat features"), g_Config.m_CcacEnableAc, &Button))
@@ -90,6 +90,13 @@ void CMenus::RenderSettingsCCAC(CUIRect MainView)
 	{
 		g_Config.m_CcacMarkClean ^= 1;
 	}
+    MainView.HSplitTop(20.0f, &Button, &MainView);
+	if(DoButton_CheckBox(&g_Config.m_CcacEnableReplay, Localize("Automatically save replay when marking bots"), g_Config.m_CcacEnableReplay, &Button))
+	{
+		g_Config.m_CcacEnableReplay ^= 1;
+	}
+
+
 	ColorRGBA BotDefault(0.72f, 0.23f, 0.23f, 1.0f);
 	ColorRGBA CleanDefault(0.68f, 1.0f, 0.68f, 1.0f);
 	ColorRGBA SusDefault(0.81f, 0.68f, 0.68f, 1.0f);
@@ -100,6 +107,28 @@ void CMenus::RenderSettingsCCAC(CUIRect MainView)
 	DoLine_ColorPicker(&s_BottingPlayerColor, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &MainView, Localize("Botting player color"), &g_Config.m_CcacBottingPlayerColor, BotDefault, false);
     DoLine_ColorPicker(&s_SusPlayerColor, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &MainView, Localize("Unsure player color"), &g_Config.m_CcacSusPlayerColor, SusDefault, false);
 	DoLine_ColorPicker(&s_CleanPlayerColor, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &MainView, Localize("Clean player color"), &g_Config.m_CcacCleanPlayerColor, CleanDefault, false);
+//=======================================================================
+
+		MainView.HSplitBottom(20.0f, &Button, &MainView);
+        MainView.VSplitMid(&LeftRect, &RightRect, 20.0f);
+        //MainView.VSplitLeft(20.0f, nullptr, &MainView);
+
+		static CButtonContainer s_ConfigButtonId;
+		if(DoButton_Menu(&s_ConfigButtonId, Localize("Replay directory"), 0, &LeftRect))
+		{
+			Storage()->GetCompletePath(IStorage::TYPE_SAVE, "demos/replays", aBuf, sizeof(aBuf));
+			Client()->ViewFile(aBuf);
+		}
+		GameClient()->m_Tooltips.DoToolTip(&s_ConfigButtonId, &MainView, Localize("Open the directory containing automatically recorded replays"));
+
+        
+		static CButtonContainer s_NameButtonId;
+		if(DoButton_Menu(&s_NameButtonId, Localize("Local name list"), 0, &RightRect))
+		{
+			Storage()->GetCompletePath(IStorage::TYPE_SAVE, "ccac", aBuf, sizeof(aBuf));
+			Client()->ViewFile(aBuf);
+		}
+		GameClient()->m_Tooltips.DoToolTip(&s_NameButtonId, &MainView, Localize("Open the directory containing the name list"));
 
 }
 

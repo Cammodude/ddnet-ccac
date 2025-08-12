@@ -17,3 +17,4 @@ MACRO_CONFIG_INT(CcacAutoReload, ccac_auto_reload, 10, 0, 600, CFGFLAG_CLIENT | 
 
 MACRO_CONFIG_STR(CcacBotLink, ccac_bot_link, 512, "https://raw.githubusercontent.com/ccac52158/cdn/refs/heads/main/bots.json", CFGFLAG_CLIENT | CFGFLAG_SAVE, "Default link to pull the latest list from")
 MACRO_CONFIG_STR(CcacLocalNames, ccac_bot_names, 128, "names.txt", CFGFLAG_CLIENT | CFGFLAG_SAVE, "Name of the local list files")
+MACRO_CONFIG_INT(CcacEnableReplay, ccac_enable_replay, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Automatically save a replay when !b is used")

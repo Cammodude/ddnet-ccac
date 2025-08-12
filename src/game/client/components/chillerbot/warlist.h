@@ -170,7 +170,8 @@ public:
 
 	void GetWarReason(const char *pName, char *pReason, int ReasonSize);
 	void GetWarClansStr(char *pBuf, int Size);
-    void SaveReplay(int Length, const char *pFilename = "");
+    //void Replay(int Length, const char *pFilename = "");
+    void Replay(const char *pName);
 
 	// non cached used when its about the name and there is no up to date id
 	bool IsWar(const char *pName, const char *pClan);
